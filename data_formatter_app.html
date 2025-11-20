@@ -1000,6 +1000,7 @@
                     specialReasonDetail: projectElement.querySelector('.special-reason-detail')?.value?.trim() || '',
                     hasSpecialAdoption: projectElement.querySelector('.special-adoption')?.checked || false,
                     specialAdoptionDetail: projectElement.querySelector('.special-adoption-detail')?.value?.trim() || '',
+                    hasSpecMatchConfirmed: projectElement.querySelector('.spec-match-confirmed')?.checked || false,
                     hasModelException: projectElement.querySelector('.model-exception')?.checked || false,
                     modelExceptionDetail: projectElement.querySelector('.model-exception-detail')?.value?.trim() || '',
                     hasNoDrawingNumber: projectElement.querySelector('.no-drawing-number')?.checked || false,
@@ -1085,10 +1086,15 @@
             }
             
             validateModel(formData) {
-                const modelsMatch = formData.zaicoModel !== '' && formData.supplierModel !== '' && 
+                // 仕様一致確認がチェック済みの場合はOK
+                if (formData.hasSpecMatchConfirmed) {
+                    return true;
+                }
+
+                const modelsMatch = formData.zaicoModel !== '' && formData.supplierModel !== '' &&
                                  formData.zaicoModel.replace(/\s/g, '') === formData.supplierModel.replace(/\s/g, '');
                 const hasException = formData.hasModelException && formData.modelExceptionDetail !== '';
-                
+
                 return modelsMatch || hasException;
             }
             
@@ -1670,18 +1676,25 @@
                             </div>
                             
                             <!-- 型番関連チェックボックス -->
-                            <div>
+                            <div class="space-y-2">
                                 <label class="inline-flex items-center">
-                                    <input type="checkbox" class="model-exception rounded text-purple-600 focus:ring-purple-500" />
-                                    <span class="ml-2 text-sm text-gray-700">型番不一致の特別事情</span>
+                                    <input type="checkbox" class="spec-match-confirmed rounded text-purple-600 focus:ring-purple-500" />
+                                    <span class="ml-2 text-sm text-gray-700">仕様一致確認済み</span>
                                 </label>
-                                
-                                <div class="model-exception-text mt-2" style="display: none;">
-                                    <textarea
-                                        class="model-exception-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-sm"
-                                        rows="2"
-                                        placeholder="型番が不一致である理由を詳しく記載してください"
-                                    ></textarea>
+
+                                <div>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" class="model-exception rounded text-purple-600 focus:ring-purple-500" />
+                                        <span class="ml-2 text-sm text-gray-700">型番不一致の特別事情</span>
+                                    </label>
+
+                                    <div class="model-exception-text mt-2" style="display: none;">
+                                        <textarea
+                                            class="model-exception-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-sm"
+                                            rows="2"
+                                            placeholder="型番が不一致である理由を詳しく記載してください"
+                                        ></textarea>
+                                    </div>
                                 </div>
                             </div>
                         </div>

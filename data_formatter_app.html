@@ -29,7 +29,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.4.3</span>
+                        <span id="appVersion">v2.4.4</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -141,7 +141,7 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div class="flex items-center mb-2">
                             <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
-                            <span class="font-bold text-green-700">v2.3.4</span>
+                            <span class="font-bold text-green-700">v2.4.4</span>
                             <span class="text-gray-600 ml-2">- 2024年12月（加工費比較機能追加版）</span>
                         </div>
                         <h4 class="font-semibold text-gray-800 mb-2">🔧 加工費比較機能実装</h4>
@@ -343,7 +343,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.4.3';
+                this.version = '2.4.4';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -2783,6 +2783,15 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.4.4',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '🔄 バージョン更新',
+                        changes: [
+                            '📌 バージョン番号を v2.4.4 に更新'
+                        ]
+                    },
                     {
                         version: '2.4.3',
                         date: '2024年12月',

@@ -948,11 +948,11 @@
                 for (const line of lines) {
                     if (line.startsWith('http')) continue;
                     
-                    // より柔軟なパターンマッチング
+                    // より柔軟なパターンマッチング - 小数点を含む価格にも対応
                     const patterns = [
-                        /^(.+?)[:：]\s*@?(\d+(?:,\d{3})*)円?\s*\/\s*(\d+)個?/,  // 基本パターン
-                        /^(.+?)\s+(\d+(?:,\d{3})*)円?\s*\/\s*(\d+)個?/,        // スペース区切り
-                        /^(.+?)\s*@(\d+(?:,\d{3})*)\/(\d+)/                    // @区切り
+                        /^(.+?)[:：]\s*@?([\d,.]+)円?\s*\/\s*(\d+)個?/,  // 基本パターン（小数点対応）
+                        /^(.+?)\s+([\d,.]+)円?\s*\/\s*(\d+)個?/,        // スペース区切り（小数点対応）
+                        /^(.+?)\s*@([\d,.]+)\/(\d+)/                    // @区切り（小数点対応）
                     ];
                     
                     for (const pattern of patterns) {
@@ -961,7 +961,7 @@
                             const [, spec, price, quantity] = match;
                             const cleanSpec = spec.trim();
                             applicationMap.set(cleanSpec, {
-                                unitPrice: parseInt(price.replace(/,/g, '')),
+                                unitPrice: parseFloat(price.replace(/,/g, '')),
                                 quantity: parseInt(quantity)
                             });
                             console.log(`📊 申請データ解析: ${cleanSpec} -> 単価:${price}円, 数量:${quantity}個`);

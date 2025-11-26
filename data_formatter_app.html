@@ -2692,7 +2692,7 @@ ${processingFeeDisplay}型番/仕様${result.modelCheck ? 'OK' : 'NG'}
 
                     return `単価${result.priceCheck ? 'OK' : 'NG'}
 　前回注文単価：${previousPrice}
-　今回単価：¥${result.calculatedPrice}${!result.unitPriceMatch && result.applicationPrice ? '　←（申請単価：' + result.applicationPrice + '）' : ''}
+　今回単価：¥${result.calculatedPrice}${!result.unitPriceMatch && result.applicationPrice ? '　←（注文単価：' + result.applicationPrice + '）' : ''}
 ${priceReason}`;
                 }
             }

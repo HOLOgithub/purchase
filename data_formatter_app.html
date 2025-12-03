@@ -343,7 +343,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.5.0';
+                this.version = '2.5.1';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -2796,6 +2796,17 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.5.1',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '🔢 型番チェック出力改善',
+                        changes: [
+                            '型番チェックのフォーマット済みテキストをデフォルト「型番の一致確認」に変更',
+                            '「仕様一致確認済み」チェック時のみ「仕様の一致確認」を表示',
+                            'generateModelReasonメソッドのロジックを改善'
+                        ]
+                    },
                     {
                         version: '2.5.0',
                         date: '2024年12月',

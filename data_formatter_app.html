@@ -2747,7 +2747,10 @@ ${priceReason}`;
             
             generateModelReason(result) {
                 if (result.modelCheck) {
-                    return result.hasModelException ? result.modelExceptionDetail : '仕様の一致確認';
+                    if (result.hasModelException) {
+                        return result.modelExceptionDetail;
+                    }
+                    return result.hasSpecMatchConfirmed ? '仕様の一致確認' : '型番の一致確認';
                 }
                 return '型番が一致していません';
             }

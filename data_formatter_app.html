@@ -29,7 +29,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.4.4</span>
+                        <span id="appVersion">v2.5.2</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -343,7 +343,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.5.1';
+                this.version = '2.5.2';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -865,7 +865,9 @@
                 const keyMapping = {
                     '前回の注文加工費': '前回注文加工費',
                     '前回注文加工費': '前回注文加工費',
-                    '加工費': '前回注文加工費'
+                    '加工費': '前回注文加工費',
+                    '仕訳科目': '科目',
+                    '科目': '科目'
                 };
 
                 // マッピングされたデータで基本情報を更新
@@ -889,9 +891,10 @@
                     '年間使用数': mappedInfo['年間使用数'] || '0',
                     '購買先': mappedInfo['購買先'] || '未指定',
                     '前回の注文単価': mappedInfo['前回の注文単価'] || '¥0',
-                    '前回注文加工費': mappedInfo['前回注文加工費'] || '¥0'
+                    '前回注文加工費': mappedInfo['前回注文加工費'] || '¥0',
+                    '科目': mappedInfo['科目'] || '未指定'
                 };
-                
+
                 // 既存データを優先し、不足分をフォールバックで補完
                 return { ...fallbacks, ...mappedInfo };
             }
@@ -944,17 +947,44 @@
             parseApplicationData(text) {
                 const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
                 const applicationMap = new Map();
-                
+
                 for (const line of lines) {
                     if (line.startsWith('http')) continue;
-                    
-                    // より柔軟なパターンマッチング - 小数点を含む価格にも対応
+
+                    // 科目を含むパターンマッチング
+                    // パターン: 科目:仕様:単価/数量 または 仕様:単価/数量
+                    const patternsWithSubject = [
+                        /^(.+?)[:：](.+?)[:：]\s*@?([\d,.]+)円?\s*\/\s*(\d+)個?/,  // 科目:仕様:単価/数量
+                        /^(.+?)[:：](.+?)\s+([\d,.]+)円?\s*\/\s*(\d+)個?/          // 科目:仕様 単価/数量
+                    ];
+
+                    let matched = false;
+                    for (const pattern of patternsWithSubject) {
+                        const match = line.match(pattern);
+                        if (match) {
+                            const [, subject, spec, price, quantity] = match;
+                            const cleanSpec = spec.trim();
+                            const cleanSubject = subject.trim();
+                            applicationMap.set(cleanSpec, {
+                                unitPrice: parseFloat(price.replace(/,/g, '')),
+                                quantity: parseInt(quantity),
+                                subject: cleanSubject
+                            });
+                            console.log(`📊 申請データ解析: ${cleanSubject}:${cleanSpec} -> 単価:${price}円, 数量:${quantity}個`);
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (matched) continue;
+
+                    // より柔軟なパターンマッチング - 小数点を含む価格にも対応（科目なし）
                     const patterns = [
                         /^(.+?)[:：]\s*@?([\d,.]+)円?\s*\/\s*(\d+)個?/,  // 基本パターン（小数点対応）
                         /^(.+?)\s+([\d,.]+)円?\s*\/\s*(\d+)個?/,        // スペース区切り（小数点対応）
                         /^(.+?)\s*@([\d,.]+)\/(\d+)/                    // @区切り（小数点対応）
                     ];
-                    
+
                     for (const pattern of patterns) {
                         const match = line.match(pattern);
                         if (match) {
@@ -962,14 +992,15 @@
                             const cleanSpec = spec.trim();
                             applicationMap.set(cleanSpec, {
                                 unitPrice: parseFloat(price.replace(/,/g, '')),
-                                quantity: parseInt(quantity)
+                                quantity: parseInt(quantity),
+                                subject: '' // 科目なし
                             });
                             console.log(`📊 申請データ解析: ${cleanSpec} -> 単価:${price}円, 数量:${quantity}個`);
                             break;
                         }
                     }
                 }
-                
+
                 console.log(`✅ 申請データ解析完了: ${applicationMap.size}件`);
                 return applicationMap;
             }
@@ -995,6 +1026,8 @@
                     supplierModel: projectElement.querySelector('.supplier-model')?.value?.trim() || '',
                     zaicoDrawingNo: projectElement.querySelector('.zaico-drawing-no')?.value?.trim() || '',
                     supplierDrawingNo: projectElement.querySelector('.supplier-drawing-no')?.value?.trim() || '',
+                    zaicoSubject: projectElement.querySelector('.zaico-subject')?.value?.trim() || '',
+                    supplierSubject: projectElement.querySelector('.supplier-subject')?.value?.trim() || '',
                     isBestPrice: projectElement.querySelector('.best-price')?.checked || false,
                     hasOneYearOrder: projectElement.querySelector('.one-year-order')?.checked || false,
                     hasSpecialReason: projectElement.querySelector('.special-reason')?.checked || false,
@@ -1007,6 +1040,8 @@
                     hasNoDrawingNumber: projectElement.querySelector('.no-drawing-number')?.checked || false,
                     hasDrawingException: projectElement.querySelector('.drawing-exception')?.checked || false,
                     drawingExceptionDetail: projectElement.querySelector('.drawing-exception-detail')?.value?.trim() || '',
+                    hasSubjectException: projectElement.querySelector('.subject-exception')?.checked || false,
+                    subjectExceptionDetail: projectElement.querySelector('.subject-exception-detail')?.value?.trim() || '',
                     hasProcessingFeeComparison: projectElement.querySelector('.processing-fee-comparison')?.checked || false,
                     hasProcessingFeeIncrease: projectElement.querySelector('.processing-fee-increase')?.checked || false,
                     processingFeeIncreaseDetail: projectElement.querySelector('.processing-fee-increase-detail')?.value?.trim() || ''
@@ -1017,21 +1052,24 @@
                 const annualUsage = parseInt(projectData.basicInfo['年間使用数']) || 0;
                 const previousPriceStr = projectData.basicInfo['前回の注文単価'] || '¥0';
                 const previousPrice = parseFloat(previousPriceStr.replace(/[¥,\s]/g, ''));
-                
+
                 // 注文数検証
                 const isInNormalRange = formData.orderQuantity >= annualUsage / 2 && formData.orderQuantity <= annualUsage;
                 const orderCheck = isInNormalRange || formData.hasOneYearOrder || (formData.hasSpecialReason && formData.specialReasonDetail !== '');
-                
+
                 // 価格検証
                 const calculatedPrice = this.calculateUnitPrice(formData.totalAmount, formData.orderQuantity, formData.taxIncluded);
                 const priceCheck = this.validatePrice(calculatedPrice, previousPrice, formData);
-                
+
                 // 型番検証
                 const modelCheck = this.validateModel(formData);
-                
+
                 // 図番検証
                 const drawingCheck = this.validateDrawing(formData);
-                
+
+                // 科目検証
+                const subjectCheck = this.validateSubject(formData);
+
                 // 加工費検証
                 const processingFeeCheck = this.validateProcessingFee(formData, projectData);
 
@@ -1047,9 +1085,10 @@
                     priceCheck,
                     modelCheck,
                     drawingCheck,
+                    subjectCheck,
                     processingFeeCheck,
                     unitPriceMatch,
-                    overallCheck: orderCheck && priceCheck && modelCheck && drawingCheck && processingFeeCheck && unitPriceMatch,
+                    overallCheck: orderCheck && priceCheck && modelCheck && drawingCheck && subjectCheck && processingFeeCheck && unitPriceMatch,
                     calculatedPrice: calculatedPrice.toFixed(2),
                     processingFeeDetails,
                     ...formData
@@ -1104,15 +1143,26 @@
                 if (formData.hasNoDrawingNumber) {
                     return true;
                 }
-                
+
                 // 図番が一致している場合はOK
-                const drawingsMatch = formData.zaicoDrawingNo !== '' && formData.supplierDrawingNo !== '' && 
+                const drawingsMatch = formData.zaicoDrawingNo !== '' && formData.supplierDrawingNo !== '' &&
                                     formData.zaicoDrawingNo.replace(/\s/g, '') === formData.supplierDrawingNo.replace(/\s/g, '');
-                
+
                 // 図番不一致の特別事情がある場合はOK
                 const hasException = formData.hasDrawingException && formData.drawingExceptionDetail !== '';
-                
+
                 return drawingsMatch || hasException;
+            }
+
+            validateSubject(formData) {
+                // 科目が一致している場合はOK
+                const subjectsMatch = formData.zaicoSubject !== '' && formData.supplierSubject !== '' &&
+                                     formData.zaicoSubject.replace(/\s/g, '') === formData.supplierSubject.replace(/\s/g, '');
+
+                // 科目不一致の特別事情がある場合はOK
+                const hasException = formData.hasSubjectException && formData.subjectExceptionDetail !== '';
+
+                return subjectsMatch || hasException;
             }
             
             validateProcessingFee(formData, projectData) {
@@ -1730,7 +1780,7 @@
                                     />
                                 </div>
                             </div>
-                            
+
                             <!-- 図番関連チェックボックス -->
                             <div class="space-y-2">
                                 <div>
@@ -1739,18 +1789,61 @@
                                         <span class="ml-2 text-sm text-gray-700">📝 図番なし</span>
                                     </label>
                                 </div>
-                                
+
                                 <div>
                                     <label class="inline-flex items-center">
                                         <input type="checkbox" class="drawing-exception rounded text-purple-600 focus:ring-purple-500" />
                                         <span class="ml-2 text-sm text-gray-700">図番不一致の特別事情</span>
                                     </label>
-                                    
+
                                     <div class="drawing-exception-text mt-2" style="display: none;">
                                         <textarea
                                             class="drawing-exception-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-sm"
                                             rows="2"
                                             placeholder="図番が不一致である理由を詳しく記載してください"
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 科目チェック -->
+                        <div class="mt-6 pt-4 border-t border-purple-200">
+                            <h6 class="font-medium text-purple-700 mb-3">📋 科目チェック</h6>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ZAICO科目</label>
+                                    <input
+                                        type="text"
+                                        class="zaico-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                        placeholder="ZAICO科目"
+                                        value=""
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">仕訳科目</label>
+                                    <input
+                                        type="text"
+                                        class="supplier-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                        placeholder="仕訳科目"
+                                        value=""
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- 科目関連チェックボックス -->
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" class="subject-exception rounded text-purple-600 focus:ring-purple-500" />
+                                        <span class="ml-2 text-sm text-gray-700">科目不一致の特別事情</span>
+                                    </label>
+
+                                    <div class="subject-exception-text mt-2" style="display: none;">
+                                        <textarea
+                                            class="subject-exception-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-sm"
+                                            rows="2"
+                                            placeholder="科目が不一致である理由を詳しく記載してください"
                                         ></textarea>
                                     </div>
                                 </div>
@@ -2203,7 +2296,7 @@
             setupRealTimeValidation() {
                 // 全ての入力フィールドを監視
                 const watchedInputs = this.projectElement.querySelectorAll(
-                    '.order-quantity, .application-price, .total-amount, .zaico-model, .supplier-model, .zaico-drawing-no, .supplier-drawing-no'
+                    '.order-quantity, .application-price, .total-amount, .zaico-model, .supplier-model, .zaico-drawing-no, .supplier-drawing-no, .zaico-subject, .supplier-subject'
                 );
                 
                 watchedInputs.forEach(input => {
@@ -2420,20 +2513,26 @@
                 // 注文数フィールドの状態更新
                 const orderQuantityInput = this.projectElement.querySelector('.order-quantity');
                 this.updateInputValidationState(orderQuantityInput, result.orderCheck);
-                
+
                 // 申請単価フィールドの状態更新
                 const applicationPriceInput = this.projectElement.querySelector('.application-price');
                 this.updateInputValidationState(applicationPriceInput, result.unitPriceMatch);
-                
+
                 // 商品総額フィールドの状態更新
                 const totalAmountInput = this.projectElement.querySelector('.total-amount');
                 this.updateInputValidationState(totalAmountInput, result.unitPriceMatch);
-                
+
                 // 型番フィールドの状態更新
                 const zaicoModelInput = this.projectElement.querySelector('.zaico-model');
                 const supplierModelInput = this.projectElement.querySelector('.supplier-model');
                 this.updateInputValidationState(zaicoModelInput, result.modelCheck);
                 this.updateInputValidationState(supplierModelInput, result.modelCheck);
+
+                // 科目フィールドの状態更新
+                const zaicoSubjectInput = this.projectElement.querySelector('.zaico-subject');
+                const supplierSubjectInput = this.projectElement.querySelector('.supplier-subject');
+                this.updateInputValidationState(zaicoSubjectInput, result.subjectCheck);
+                this.updateInputValidationState(supplierSubjectInput, result.subjectCheck);
             }
             
             updateInputValidationState(input, isValid) {
@@ -2489,28 +2588,33 @@
             
             setupCheckboxToggles() {
                 const checkboxConfigs = [
-                    { 
-                        checkbox: '.special-reason', 
+                    {
+                        checkbox: '.special-reason',
                         textArea: '.special-reason-text',
                         description: '注文数の特別理由'
                     },
-                    { 
-                        checkbox: '.special-adoption', 
+                    {
+                        checkbox: '.special-adoption',
                         textArea: '.special-adoption-text',
                         description: '価格上昇の特別事情'
                     },
-                    { 
-                        checkbox: '.model-exception', 
+                    {
+                        checkbox: '.model-exception',
                         textArea: '.model-exception-text',
                         description: '型番不一致の特別事情'
                     },
-                    { 
-                        checkbox: '.drawing-exception', 
+                    {
+                        checkbox: '.drawing-exception',
                         textArea: '.drawing-exception-text',
                         description: '図番不一致の特別事情'
                     },
-                    { 
-                        checkbox: '.processing-fee-increase', 
+                    {
+                        checkbox: '.subject-exception',
+                        textArea: '.subject-exception-text',
+                        description: '科目不一致の特別事情'
+                    },
+                    {
+                        checkbox: '.processing-fee-increase',
                         textArea: '.processing-fee-increase-text',
                         description: '加工費上昇の特別事情'
                     }
@@ -2660,12 +2764,13 @@
                 const supplier = projectData.basicInfo['購買先'] || '未指定';
                 const previousPrice = projectData.basicInfo['前回の注文単価'] || '¥0';
                 const previousProcessingFee = projectData.basicInfo['前回注文加工費'] || '¥0';
-                
+
                 const orderReason = this.generateOrderReason(result, annualUsage);
                 const priceReason = this.generatePriceReason(result, previousPrice);
                 const modelReason = this.generateModelReason(result);
+                const subjectReason = this.generateSubjectReason(result);
                 const modelDisplay = this.getModelDisplay(result, modelNumber, itemName);
-                
+
                 // 加工費比較の表示を生成
                 const processingFeeDisplay = this.generateProcessingFeeDisplay(result, projectData, previousProcessingFee);
 
@@ -2679,7 +2784,11 @@
 ${processingFeeDisplay}型番/仕様${result.modelCheck ? 'OK' : 'NG'}
 　ZAICO型番　：${result.zaicoModel}
 　見積/購買先：${result.supplierModel}
-　⇒${modelReason}`;
+　⇒${modelReason}
+科目${result.subjectCheck ? 'OK' : 'NG'}
+　ZAICO科目：${result.zaicoSubject}
+　仕訳科目　：${result.supplierSubject}
+　⇒${subjectReason}`;
             }
 
             generateProcessingFeeDisplay(result, projectData, previousProcessingFee) {
@@ -2754,6 +2863,16 @@ ${priceReason}`;
                 }
                 return '型番が一致していません';
             }
+
+            generateSubjectReason(result) {
+                if (result.subjectCheck) {
+                    if (result.hasSubjectException) {
+                        return result.subjectExceptionDetail;
+                    }
+                    return '科目の一致確認';
+                }
+                return '科目が一致していません';
+            }
             
             getModelDisplay(result, modelNumber, itemName) {
                 const modelsMatch = result.zaicoModel && result.supplierModel && 
@@ -2796,6 +2915,20 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.5.2',
+                        date: '2024年12月',
+                        type: 'minor',
+                        title: '📋 科目チェック機能実装',
+                        changes: [
+                            '科目フィールドのサポート追加: ZAICO科目と仕訳科目の一致確認',
+                            'UI拡張: 科目入力フィールドと特別事情チェックボックスを追加',
+                            'データパース強化: 生データと申請データの科目自動解析',
+                            '検証機能追加: validateSubject、generateSubjectReasonメソッドを実装',
+                            'リアルタイム検証: 科目フィールドの自動監視と状態更新',
+                            'フォーマット出力: 科目情報を含む出力テキスト生成'
+                        ]
+                    },
                     {
                         version: '2.5.1',
                         date: '2024年12月',

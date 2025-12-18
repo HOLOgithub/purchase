@@ -29,7 +29,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.5.2</span>
+                        <span id="appVersion">v2.5.4</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -343,7 +343,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.5.2';
+                this.version = '2.5.4';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -1831,12 +1831,16 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">仕訳科目</label>
-                                    <input
-                                        type="text"
-                                        class="supplier-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                        placeholder="仕訳科目"
-                                        value=""
-                                    />
+                                    <select
+                                        class="supplier-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                                    >
+                                        <option value="">選択してください</option>
+                                        <option value="原材料">原材料</option>
+                                        <option value="仕掛品">仕掛品</option>
+                                        <option value="貯蔵品">貯蔵品</option>
+                                        <option value="研究開発費">研究開発費</option>
+                                        <option value="技術・製造">技術・製造</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -2963,6 +2967,31 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.5.4',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '🎯 仕訳科目ドロップダウンリスト化',
+                        changes: [
+                            '仕訳科目をドロップダウンリスト形式に変更',
+                            '選択肢を追加: 原材料、仕掛品、貯蔵品、研究開発費、技術・製造',
+                            'ユーザビリティ向上: 入力ミスを防止し、入力効率を向上'
+                        ]
+                    },
+                    {
+                        version: '2.5.3',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '⚙️ デフォルト値設定と加工費比較自動化',
+                        changes: [
+                            'ZAICO型番のデフォルト値設定: 生データから自動入力',
+                            'ZAICO科目のデフォルト値設定: 生データから自動入力',
+                            '加工費比較自動チェック: 科目が「仕掛品」の場合に自動的にチェック',
+                            'リアルタイム監視: ZAICO科目が「仕掛品」に変更された場合も自動チェック',
+                            'handleSubjectChangeメソッドを追加: 科目変更時の処理を実装',
+                            'ユーザビリティ向上: 説明テキストを追加して自動チェックの理由を明示'
+                        ]
+                    },
                     {
                         version: '2.5.2',
                         date: '2024年12月',

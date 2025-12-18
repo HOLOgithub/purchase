@@ -1572,7 +1572,7 @@
                         <h5 class="font-semibold text-gray-700 border-b pb-2">検証データ入力</h5>
 
                         ${this.generateOrderQuantitySection(application)}
-                        ${this.generatePriceSection(application)}
+                        ${this.generatePriceSection(application, basicInfo)}
                         ${this.generateModelSection(basicInfo)}
                     </div>
                 `;
@@ -1609,14 +1609,19 @@
                 `;
             }
             
-            generatePriceSection(application) {
+            generatePriceSection(application, basicInfo = {}) {
+                // 科目が「仕掛品」の場合は加工費比較をデフォルトでチェック
+                const subject = basicInfo['科目'] || '';
+                const isProcessingFeeChecked = subject === '仕掛品';
+                const processingFeeDisplayStyle = isProcessingFeeChecked ? 'block' : 'none';
+
                 return `
                     <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                         ${this.generateInputField('申請単価', 'text', 'application-price', application ? '¥' + application.unitPrice : '', '')}
-                        
+
                         <div class="space-y-3">
                             ${this.generateInputField('商品総額', 'text', 'total-amount', application ? '¥' + (application.unitPrice * application.quantity) : '', '')}
-                            
+
                             <!-- 税込/税抜チェックボックス -->
                             <div class="bg-white p-3 rounded border border-green-300">
                                 <label class="inline-flex items-center">
@@ -1629,21 +1634,21 @@
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div class="calculation-display mt-3 text-sm bg-white p-3 rounded border border-green-300" style="display: none;"></div>
-                        
+
                         <!-- 価格関連チェックボックス -->
                         <div class="mt-4 space-y-2">
                             <label class="inline-flex items-center">
                                 <input type="checkbox" class="best-price rounded text-green-600 focus:ring-green-500" />
                                 <span class="ml-2 text-sm text-gray-700">📊 相見積もりで最安値</span>
                             </label>
-                            
+
                             <label class="inline-flex items-center">
                                 <input type="checkbox" class="special-adoption rounded text-green-600 focus:ring-green-500" />
                                 <span class="ml-2 text-sm text-gray-700">⚠️ 特別採用（価格上昇の特別事情）</span>
                             </label>
-                            
+
                             <div class="special-adoption-text mt-2" style="display: none;">
                                 <textarea
                                     class="special-adoption-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-sm"
@@ -1651,19 +1656,20 @@
                                     placeholder="価格上昇の特別事情・理由を詳しく記載してください"
                                 ></textarea>
                             </div>
-                            
+
                             <!-- 加工費比較チェックボックス -->
                             <div class="border border-green-200 rounded-lg p-3 bg-green-50">
                                 <label class="inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="processing-fee-comparison rounded text-green-600 focus:ring-green-500" />
+                                    <input type="checkbox" class="processing-fee-comparison rounded text-green-600 focus:ring-green-500" ${isProcessingFeeChecked ? 'checked' : ''} />
                                     <span class="ml-2 text-sm font-medium text-green-700">🔧 加工費比較を有効にする</span>
                                 </label>
                                 <p class="text-xs text-green-600 mt-1 ml-6">
                                     前回注文加工費と申請単価を自動比較し、申請単価が上昇時は理由記載が必要です
+                                    ${isProcessingFeeChecked ? '<br><strong>※ 科目が「仕掛品」のため自動的にチェックされています</strong>' : ''}
                                 </p>
                             </div>
-                            
-                            <div class="processing-fee-section mt-2" style="display: none;">
+
+                            <div class="processing-fee-section mt-2" style="display: ${processingFeeDisplayStyle};">
                                 <div class="bg-white p-3 rounded border border-green-300">
                                     <div class="mb-3">
                                         <div class="grid grid-cols-2 gap-3">
@@ -2301,34 +2307,39 @@
                 const watchedInputs = this.projectElement.querySelectorAll(
                     '.order-quantity, .application-price, .total-amount, .zaico-model, .supplier-model, .zaico-drawing-no, .supplier-drawing-no, .zaico-subject, .supplier-subject'
                 );
-                
+
                 watchedInputs.forEach(input => {
                     input.addEventListener('input', () => {
                         this.addInputValidationStyle(input);
                         this.triggerRealTimeValidation();
+
+                        // ZAICO科目が「仕掛品」に変更された場合、加工費比較を自動チェック
+                        if (input.classList.contains('zaico-subject')) {
+                            this.handleSubjectChange(input.value);
+                        }
                     });
-                    
+
                     input.addEventListener('focus', () => {
                         this.addFocusStyle(input);
                     });
-                    
+
                     input.addEventListener('blur', () => {
                         this.removeFocusStyle(input);
                         this.triggerRealTimeValidation(true);
                     });
                 });
-                
+
                 // チェックボックスも監視
                 const checkboxes = this.projectElement.querySelectorAll(
                     '.best-price, .special-reason, .special-adoption, .model-exception, .no-drawing-number, .drawing-exception, .processing-fee-comparison, .processing-fee-increase'
                 );
-                
+
                 checkboxes.forEach(checkbox => {
                     checkbox.addEventListener('change', () => {
                         this.triggerRealTimeValidation(true);
                     });
                 });
-                
+
                 // テキストエリアも監視
                 const textareas = this.projectElement.querySelectorAll('textarea');
                 textareas.forEach(textarea => {
@@ -2588,7 +2599,41 @@
             clearValidationCache() {
                 this.validationCache.clear();
             }
-            
+
+            handleSubjectChange(subjectValue) {
+                const processingFeeCheckbox = this.projectElement.querySelector('.processing-fee-comparison');
+                const processingFeeSection = this.projectElement.querySelector('.processing-fee-section');
+
+                if (!processingFeeCheckbox || !processingFeeSection) return;
+
+                // 科目が「仕掛品」の場合、加工費比較を自動チェック
+                if (subjectValue.trim() === '仕掛品') {
+                    processingFeeCheckbox.checked = true;
+                    processingFeeSection.style.display = 'block';
+
+                    // 前回加工費を表示
+                    const projectIndex = parseInt(this.projectElement.dataset.projectIndex);
+                    const projectData = window.DataFormatterApp?.projects?.[projectIndex];
+
+                    if (projectData) {
+                        const previousFeeDisplay = processingFeeSection.querySelector('.processing-fee-previous');
+                        const applicationPriceDisplay = processingFeeSection.querySelector('.application-price-display');
+
+                        if (previousFeeDisplay) {
+                            const previousFee = projectData.basicInfo['前回注文加工費'] || '¥0';
+                            previousFeeDisplay.textContent = previousFee;
+                            previousFeeDisplay.className = previousFeeDisplay.className.replace('text-gray-600', 'text-green-700 font-medium');
+                        }
+
+                        if (applicationPriceDisplay) {
+                            const applicationPriceInput = this.projectElement.querySelector('.application-price');
+                            const currentPrice = applicationPriceInput?.value || '未入力';
+                            applicationPriceDisplay.textContent = currentPrice === '未入力' ? '申請単価を入力してください' : currentPrice;
+                        }
+                    }
+                }
+            }
+
             setupCheckboxToggles() {
                 const checkboxConfigs = [
                     {

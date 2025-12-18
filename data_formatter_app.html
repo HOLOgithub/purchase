@@ -1357,7 +1357,7 @@
                         
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             ${this.generateBasicInfoSection(basicInfo)}
-                            ${this.generateValidationInputSection(application)}
+                            ${this.generateValidationInputSection(application, basicInfo)}
                         </div>
                         
                         <div class="validation-result mt-6 p-4 rounded-lg bg-white border" style="display: none;"></div>
@@ -1566,14 +1566,14 @@
                 `;
             }
             
-            generateValidationInputSection(application) {
+            generateValidationInputSection(application, basicInfo) {
                 return `
                     <div class="space-y-4">
                         <h5 class="font-semibold text-gray-700 border-b pb-2">検証データ入力</h5>
-                        
+
                         ${this.generateOrderQuantitySection(application)}
                         ${this.generatePriceSection(application)}
-                        ${this.generateModelSection()}
+                        ${this.generateModelSection(basicInfo)}
                     </div>
                 `;
             }
@@ -1706,7 +1706,10 @@
                 `;
             }
             
-            generateModelSection() {
+            generateModelSection(basicInfo = {}) {
+                const zaicoModel = basicInfo['型番'] || '';
+                const zaicoSubject = basicInfo['科目'] || '';
+
                 return `
                     <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
                         <!-- 型番チェック -->
@@ -1719,7 +1722,7 @@
                                         type="text"
                                         class="zaico-model w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         placeholder="ZAICO型番"
-                                        value=""
+                                        value="${zaicoModel}"
                                     />
                                 </div>
                                 <div>
@@ -1817,7 +1820,7 @@
                                         type="text"
                                         class="zaico-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         placeholder="ZAICO科目"
-                                        value=""
+                                        value="${zaicoSubject}"
                                     />
                                 </div>
                                 <div>

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スマート調達分析システム（SPAS）</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,6 +16,27 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        /* ドラッグ＆ドロップ用スタイル */
+        .drag-over {
+            border: 2px dashed #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        .drop-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(59, 130, 246, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .textarea-wrapper {
+            position: relative;
         }
     </style>
 </head>
@@ -29,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.5.4</span>
+                        <span id="appVersion">v2.6.0</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -46,13 +68,16 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            生データ
+                            生データ <span class="text-xs text-gray-500 ml-2">（Excelファイルをドラッグ＆ドロップ可能）</span>
                         </label>
-                        <textarea
-                            id="inputData"
-                            class="w-full h-32 p-3 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                            placeholder="複数案件の生データを貼り付け（案件ごとに改行区切り）"
-                        ></textarea>
+                        <div class="textarea-wrapper" id="inputDataWrapper">
+                            <textarea
+                                id="inputData"
+                                class="w-full h-32 p-3 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                placeholder="複数案件の生データを貼り付け（案件ごとに改行区切り）&#10;または Excelファイル(.xlsx/.xls)をドラッグ＆ドロップ"
+                            ></textarea>
+                            <div class="drop-hint" id="dropHint" style="display: none;">Excelファイルをドロップ</div>
+                        </div>
                     </div>
                     
                     <div>
@@ -343,7 +368,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.5.4';
+                this.version = '2.6.0';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -2952,11 +2977,224 @@ ${priceReason}`;
                     const totalAmount = parseFloat(result.totalAmount.replace(/[¥,\s]/g, '')) || 0;
                     return total + totalAmount;
                 }, 0);
-                
+
                 return `税抜総額：¥${totalAmountWithTax.toLocaleString()}`;
             }
         }
-        
+
+        // Excelインポートクラス
+        class ExcelImporter {
+            constructor(textareaId, notificationManager) {
+                this.textarea = document.getElementById(textareaId);
+                this.wrapper = document.getElementById(textareaId + 'Wrapper');
+                this.dropHint = document.getElementById('dropHint');
+                this.notificationManager = notificationManager;
+
+                // フィールドマッピング定義（Excel列名 → 生データキー名）
+                this.fieldMapping = {
+                    '物品名': '仕様',
+                    '型番': '型番',
+                    '購買先': '購買先',
+                    '年間使用数': '年間使用数',
+                    '在庫数': '在庫数',
+                    '前回の注文単価': '前回の注文単価',
+                    '前回の注文加工費': '前回注文加工費',
+                    '科目': '科目',
+                    '部材CODE': '部材CODE',
+                    '単価': '単価',
+                    '加工費': '加工費'
+                };
+
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                if (!this.textarea || !this.wrapper) {
+                    console.warn('ExcelImporter: テキストエリアまたはラッパーが見つかりません');
+                    return;
+                }
+
+                // ドラッグオーバー時
+                this.wrapper.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.wrapper.classList.add('drag-over');
+                    if (this.dropHint) this.dropHint.style.display = 'block';
+                });
+
+                // ドラッグ離脱時
+                this.wrapper.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.wrapper.classList.remove('drag-over');
+                    if (this.dropHint) this.dropHint.style.display = 'none';
+                });
+
+                // ドロップ時
+                this.wrapper.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.wrapper.classList.remove('drag-over');
+                    if (this.dropHint) this.dropHint.style.display = 'none';
+
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleFile(files[0]);
+                    }
+                });
+
+                console.log('📁 Excelドラッグ＆ドロップ機能が有効化されました');
+            }
+
+            handleFile(file) {
+                const validExtensions = ['.xlsx', '.xls'];
+                const fileName = file.name.toLowerCase();
+                const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
+
+                if (!isValidFile) {
+                    this.notificationManager.showError('Excelファイル(.xlsx/.xls)のみ対応しています');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        // 1シート目を読み込み
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+
+                        // JSONに変換
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                        // 生データ形式に変換
+                        const rawDataText = this.convertToRawData(jsonData);
+
+                        if (rawDataText) {
+                            this.textarea.value = rawDataText;
+                            this.notificationManager.showSuccess(`Excelファイル「${file.name}」を読み込みました`);
+                            console.log('📊 Excel読み込み完了:', file.name);
+                        } else {
+                            this.notificationManager.showError('データの変換に失敗しました。Excelの形式を確認してください。');
+                        }
+                    } catch (error) {
+                        console.error('Excel読み込みエラー:', error);
+                        this.notificationManager.showError('Excelファイルの読み込みに失敗しました: ' + error.message);
+                    }
+                };
+
+                reader.onerror = () => {
+                    this.notificationManager.showError('ファイルの読み込みに失敗しました');
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+
+            convertToRawData(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    return null;
+                }
+
+                // Excelの構造を解析（添付画像の形式に基づく）
+                // 列Aにラベル、列Bに値という形式
+                const dataMap = {};
+
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row && row.length >= 2) {
+                        const key = String(row[0] || '').trim();
+                        const value = row[1];
+                        if (key) {
+                            dataMap[key] = value !== undefined && value !== null ? String(value) : '';
+                        }
+                    }
+                }
+
+                // 生データ形式のテキストを生成
+                const outputLines = [];
+
+                // 必要なフィールドを順番に出力
+                const outputFields = [
+                    { excelKey: '物品名', outputKey: '仕様' },
+                    { excelKey: '型番', outputKey: '型番' },
+                    { excelKey: '購買先', outputKey: '購買先' },
+                    { excelKey: '年間使用数', outputKey: '年間使用数' },
+                    { excelKey: '在庫数', outputKey: '在庫数' },
+                    { excelKey: '前回の注文単価', outputKey: '前回の注文単価' },
+                    { excelKey: '前回の注文加工費', outputKey: '前回注文加工費' },
+                    { excelKey: '科目', outputKey: '科目' }
+                ];
+
+                for (const field of outputFields) {
+                    let value = dataMap[field.excelKey];
+                    if (value !== undefined && value !== '') {
+                        // 価格から円記号を除去し、数値のみに
+                        if (field.excelKey.includes('単価') || field.excelKey.includes('加工費')) {
+                            value = value.replace(/[¥￥,]/g, '');
+                        }
+                        outputLines.push(`${field.outputKey}：${value}`);
+                    }
+                }
+
+                // 最低限のデータがあるか確認
+                if (outputLines.length < 2) {
+                    // フォールバック：ヘッダー行+データ行の形式を試す
+                    return this.convertTableFormat(jsonData);
+                }
+
+                return outputLines.join('\n');
+            }
+
+            // テーブル形式（ヘッダー行+データ行）の場合の変換
+            convertTableFormat(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    return null;
+                }
+
+                const headers = jsonData[0];
+                const results = [];
+
+                // 2行目以降のデータを処理
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (!row || row.every(cell => cell === null || cell === undefined || cell === '')) {
+                        continue;
+                    }
+
+                    const outputLines = [];
+
+                    for (let j = 0; j < headers.length; j++) {
+                        const header = String(headers[j] || '').trim();
+                        let value = row[j];
+
+                        if (!header || value === undefined || value === null || value === '') {
+                            continue;
+                        }
+
+                        value = String(value);
+
+                        // ヘッダーをマッピング
+                        const mappedKey = this.fieldMapping[header] || header;
+
+                        // 価格から円記号を除去
+                        if (header.includes('単価') || header.includes('加工費')) {
+                            value = value.replace(/[¥￥,]/g, '');
+                        }
+
+                        outputLines.push(`${mappedKey}：${value}`);
+                    }
+
+                    if (outputLines.length > 0) {
+                        results.push(outputLines.join('\n'));
+                    }
+                }
+
+                return results.join('\n\n');
+            }
+        }
+
         // バージョン管理クラス
         class VersionManager {
             constructor(version) {
@@ -2967,6 +3205,18 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.6.0',
+                        date: '2025年1月',
+                        type: 'minor',
+                        title: '📁 Excelインポート機能',
+                        changes: [
+                            'Excelファイル(.xlsx/.xls)のドラッグ＆ドロップ読み込み機能を追加',
+                            '生データエリアに直接Excelファイルをドロップ可能',
+                            'SheetJS(xlsx)ライブラリを使用したクライアントサイド処理',
+                            'データは外部送信されず、ブラウザ内でのみ処理（セキュリティ確保）'
+                        ]
+                    },
                     {
                         version: '2.5.4',
                         date: '2024年12月',
@@ -3354,9 +3604,13 @@ ${priceReason}`;
         // アプリケーション初期化
         document.addEventListener('DOMContentLoaded', () => {
             const app = new DataFormatterApp();
-            
+
             // グローバルにアプリインスタンスを設定（デバッグ用）
             window.DataFormatterApp = app;
+
+            // Excelインポート機能を初期化
+            const excelImporter = new ExcelImporter('inputData', app.notificationManager);
+            window.ExcelImporter = excelImporter;
             
             // キーボードショートカット
             document.addEventListener('keydown', (e) => {
@@ -3385,6 +3639,7 @@ ${priceReason}`;
             console.log('🔄 自動キーマッピング機能が稼働中');
             console.log('📋 条件分岐型出力表示システム');
             console.log('⌨️ ブラウザ標準操作を優先：カスタムショートカット削除');
+            console.log('📁 Excelインポート機能: 生データエリアにファイルをドラッグ＆ドロップ');
             console.log('📱 バージョン情報: 画面右上のボタンから表示可能');
             console.log('🔧 開発者向け: window.DataFormatterApp でアプリインスタンスにアクセス可能');
             console.log('📋 完全仕様書・技術資料を参照');

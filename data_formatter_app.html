@@ -3328,19 +3328,16 @@ ${priceReason}`;
 
                     const firstCell = String(row[0] || '').trim();
 
-                    // 購買先1、購買先2、購買先3 のパターンを探す
-                    if (firstCell.match(/^購買先[0-9]*$/)) {
-                        // 次の行にヘッダー、その次の行にデータがある想定
-                        const headerRow = jsonData[i];
+                    // 購買先1、購買先2、購買先3 のパターンを探す（「購買先」単体は除外）
+                    if (firstCell.match(/^購買先[0-9]+$/)) {
+                        // この行がヘッダー行、次の行がデータ行
+                        const headerRow = row;
                         const dataRow = jsonData[i + 1];
 
                         if (dataRow && dataRow.length >= 2) {
                             const supplierName = String(dataRow[0] || '').trim();
-                            if (supplierName) {
-                                // ヘッダーとデータのマッピング
-                                const headers = headerRow;
-                                const values = dataRow;
-
+                            // 購買先名が空や数字のみの場合はスキップ
+                            if (supplierName && !supplierName.match(/^[0-9.]+$/)) {
                                 const quotation = {
                                     supplier: supplierName,
                                     unitPrice: 0,
@@ -3352,19 +3349,19 @@ ${priceReason}`;
                                     url: ''
                                 };
 
-                                for (let j = 1; j < headers.length && j < values.length; j++) {
-                                    const header = String(headers[j] || '').trim();
-                                    const value = values[j];
+                                for (let j = 1; j < headerRow.length && j < dataRow.length; j++) {
+                                    const header = String(headerRow[j] || '').trim();
+                                    const value = dataRow[j];
 
                                     if (header.includes('単価') && !header.includes('送料込')) {
                                         quotation.unitPrice = this.parsePrice(value);
                                     } else if (header.includes('発注数')) {
                                         quotation.quantity = parseInt(value, 10) || 0;
-                                    } else if (header.includes('送料')) {
+                                    } else if (header === '送料' || header.match(/^送料$/)) {
                                         quotation.shippingFee = this.parsePrice(value);
-                                    } else if (header.includes('合計')) {
+                                    } else if (header.includes('合計') && !header.includes('送料込')) {
                                         quotation.total = this.parsePrice(value);
-                                    } else if (header.includes('送料込単価')) {
+                                    } else if (header.includes('送料込単価') || header.includes('送料込')) {
                                         quotation.unitPriceWithShipping = this.parsePrice(value);
                                     } else if (header.includes('備考')) {
                                         quotation.remarks = String(value || '');
@@ -3373,7 +3370,20 @@ ${priceReason}`;
                                     }
                                 }
 
+                                // 合計が0の場合、計算
+                                if (quotation.total === 0 && quotation.unitPrice > 0 && quotation.quantity > 0) {
+                                    quotation.total = quotation.unitPrice * quotation.quantity + quotation.shippingFee;
+                                }
+
+                                // 送料込単価が0の場合、計算
+                                if (quotation.unitPriceWithShipping === 0 && quotation.unitPrice > 0) {
+                                    quotation.unitPriceWithShipping = quotation.quantity > 0
+                                        ? quotation.total / quotation.quantity
+                                        : quotation.unitPrice;
+                                }
+
                                 quotations.push(quotation);
+                                console.log(`📦 購買先データ抽出: ${supplierName}`, quotation);
                             }
                         }
                     }

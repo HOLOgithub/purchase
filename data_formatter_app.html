@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.6.0</span>
+                        <span id="appVersion">v2.6.1</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -368,7 +368,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.6.0';
+                this.version = '2.6.1';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3062,20 +3062,40 @@ ${priceReason}`;
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
 
-                        // 1シート目を読み込み
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
+                        // 全シートを読み込み
+                        const allSheetData = [];
+                        const sheetCount = workbook.SheetNames.length;
 
-                        // JSONに変換
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        for (const sheetName of workbook.SheetNames) {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                        // 生データ形式に変換
-                        const rawDataText = this.convertToRawData(jsonData);
+                            // 空のシートはスキップ
+                            if (!jsonData || jsonData.length < 2) {
+                                console.log(`📄 シート「${sheetName}」はスキップ（データなし）`);
+                                continue;
+                            }
 
-                        if (rawDataText) {
-                            this.textarea.value = rawDataText;
-                            this.notificationManager.showSuccess(`Excelファイル「${file.name}」を読み込みました`);
-                            console.log('📊 Excel読み込み完了:', file.name);
+                            const rawDataText = this.convertToRawData(jsonData);
+                            if (rawDataText) {
+                                allSheetData.push({
+                                    sheetName: sheetName,
+                                    data: rawDataText
+                                });
+                                console.log(`📄 シート「${sheetName}」を読み込みました`);
+                            }
+                        }
+
+                        if (allSheetData.length > 0) {
+                            // 各シートのデータを空行で区切って結合
+                            const combinedData = allSheetData.map(sheet => sheet.data).join('\n\n');
+                            this.textarea.value = combinedData;
+
+                            const message = allSheetData.length === 1
+                                ? `Excelファイル「${file.name}」を読み込みました（1シート）`
+                                : `Excelファイル「${file.name}」を読み込みました（${allSheetData.length}シート）`;
+                            this.notificationManager.showSuccess(message);
+                            console.log(`📊 Excel読み込み完了: ${file.name} (${allSheetData.length}/${sheetCount}シート)`);
                         } else {
                             this.notificationManager.showError('データの変換に失敗しました。Excelの形式を確認してください。');
                         }
@@ -3205,6 +3225,18 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.6.1',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '📄 Excel複数シート対応',
+                        changes: [
+                            'Excelファイルの複数シート読み込みに対応',
+                            '全シートのデータを自動的に結合して生データエリアに入力',
+                            '空のシートは自動スキップ',
+                            '読み込んだシート数を通知メッセージに表示'
+                        ]
+                    },
                     {
                         version: '2.6.0',
                         date: '2025年1月',

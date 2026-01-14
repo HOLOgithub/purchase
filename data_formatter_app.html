@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.6.0</span>
+                        <span id="appVersion">v2.6.2</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -78,8 +78,35 @@
                             ></textarea>
                             <div class="drop-hint" id="dropHint" style="display: none;">Excelファイルをドロップ</div>
                         </div>
+                        <!-- 相見積もり結果表示エリア -->
+                        <div id="quotationResultArea" class="mt-4 hidden">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                    <span class="mr-2">📊</span>相見積もり結果
+                                    <span id="quotationItemName" class="ml-2 text-blue-600 font-normal"></span>
+                                </h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                        <thead>
+                                            <tr class="bg-blue-100">
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="quotationTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="quotationRecommendation" class="mt-3 text-sm text-green-700 font-medium"></div>
+                            </div>
+                        </div>
                     </div>
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             申請単価・注文数データ
@@ -368,7 +395,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.6.0';
+                this.version = '2.6.2';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3062,22 +3089,54 @@ ${priceReason}`;
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
 
-                        // 1シート目を読み込み
-                        const firstSheetName = workbook.SheetNames[0];
-                        const worksheet = workbook.Sheets[firstSheetName];
+                        // 全シートを読み込み
+                        const allSheetData = [];
+                        const sheetCount = workbook.SheetNames.length;
 
-                        // JSONに変換
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        for (const sheetName of workbook.SheetNames) {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                        // 生データ形式に変換
-                        const rawDataText = this.convertToRawData(jsonData);
+                            // 空のシートはスキップ
+                            if (!jsonData || jsonData.length < 2) {
+                                console.log(`📄 シート「${sheetName}」はスキップ（データなし）`);
+                                continue;
+                            }
 
-                        if (rawDataText) {
-                            this.textarea.value = rawDataText;
-                            this.notificationManager.showSuccess(`Excelファイル「${file.name}」を読み込みました`);
-                            console.log('📊 Excel読み込み完了:', file.name);
+                            const rawDataText = this.convertToRawData(jsonData);
+                            if (rawDataText) {
+                                allSheetData.push({
+                                    sheetName: sheetName,
+                                    data: rawDataText
+                                });
+                                console.log(`📄 シート「${sheetName}」を読み込みました`);
+                            }
+                        }
+
+                        if (allSheetData.length > 0) {
+                            // 各シートのデータを空行で区切って結合
+                            const combinedData = allSheetData.map(sheet => sheet.data).join('\n\n');
+                            this.textarea.value = combinedData;
+
+                            const message = allSheetData.length === 1
+                                ? `Excelファイル「${file.name}」を読み込みました（1シート）`
+                                : `Excelファイル「${file.name}」を読み込みました（${allSheetData.length}シート）`;
+                            this.notificationManager.showSuccess(message);
+                            console.log(`📊 Excel読み込み完了: ${file.name} (${allSheetData.length}/${sheetCount}シート)`);
+
+                            // 相見積もりデータを抽出・表示（1シート目から）
+                            const firstSheetName = workbook.SheetNames[0];
+                            const firstWorksheet = workbook.Sheets[firstSheetName];
+                            const firstSheetJson = XLSX.utils.sheet_to_json(firstWorksheet, { header: 1 });
+                            const quotationData = this.extractQuotationData(firstSheetJson);
+                            if (quotationData) {
+                                this.displayQuotationResult(quotationData);
+                            } else {
+                                this.hideQuotationResult();
+                            }
                         } else {
                             this.notificationManager.showError('データの変換に失敗しました。Excelの形式を確認してください。');
+                            this.hideQuotationResult();
                         }
                     } catch (error) {
                         console.error('Excel読み込みエラー:', error);
@@ -3193,6 +3252,229 @@ ${priceReason}`;
 
                 return results.join('\n\n');
             }
+
+            // 相見積もりデータを抽出
+            extractQuotationData(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    return null;
+                }
+
+                const dataMap = {};
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row && row.length >= 2) {
+                        const key = String(row[0] || '').trim();
+                        const value = row[1];
+                        if (key) {
+                            dataMap[key] = value !== undefined && value !== null ? String(value) : '';
+                        }
+                    }
+                }
+
+                // 物品名を取得
+                const itemName = dataMap['物品名'] || dataMap['仕様'] || '';
+                const modelNumber = dataMap['型番'] || '';
+                const previousUnitPrice = dataMap['前回の注文単価'] || '';
+
+                // 購買先データを抽出（購買先1、購買先2、購買先3）
+                const quotations = [];
+
+                for (let i = 1; i <= 5; i++) {
+                    const supplierKey = `購買先${i}`;
+                    const supplierName = dataMap[supplierKey];
+
+                    if (supplierName) {
+                        const quotation = {
+                            supplier: supplierName,
+                            unitPrice: this.parsePrice(dataMap[`単価_${i}`] || dataMap['単価'] || ''),
+                            quantity: parseInt(dataMap[`発注数_${i}`] || dataMap['発注数'] || '0', 10) || 0,
+                            shippingFee: this.parsePrice(dataMap['送料'] || '0'),
+                            total: this.parsePrice(dataMap[`合計_${i}`] || ''),
+                            unitPriceWithShipping: this.parsePrice(dataMap['送料込単価'] || ''),
+                            remarks: dataMap['備考'] || '',
+                            url: dataMap['URL'] || ''
+                        };
+
+                        // 行データから直接抽出を試みる（テーブル形式の場合）
+                        quotations.push(quotation);
+                    }
+                }
+
+                // テーブル形式で購買先データを探す
+                if (quotations.length === 0) {
+                    quotations.push(...this.extractQuotationFromTable(jsonData));
+                }
+
+                if (quotations.length === 0) {
+                    return null;
+                }
+
+                return {
+                    itemName: itemName,
+                    modelNumber: modelNumber,
+                    previousUnitPrice: previousUnitPrice,
+                    quotations: quotations
+                };
+            }
+
+            // テーブル形式から相見積もりデータを抽出
+            extractQuotationFromTable(jsonData) {
+                const quotations = [];
+
+                // 購買先の行を探す
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (!row || row.length < 2) continue;
+
+                    const firstCell = String(row[0] || '').trim();
+
+                    // 購買先1、購買先2、購買先3 のパターンを探す
+                    if (firstCell.match(/^購買先[0-9]*$/)) {
+                        // 次の行にヘッダー、その次の行にデータがある想定
+                        const headerRow = jsonData[i];
+                        const dataRow = jsonData[i + 1];
+
+                        if (dataRow && dataRow.length >= 2) {
+                            const supplierName = String(dataRow[0] || '').trim();
+                            if (supplierName) {
+                                // ヘッダーとデータのマッピング
+                                const headers = headerRow;
+                                const values = dataRow;
+
+                                const quotation = {
+                                    supplier: supplierName,
+                                    unitPrice: 0,
+                                    quantity: 0,
+                                    shippingFee: 0,
+                                    total: 0,
+                                    unitPriceWithShipping: 0,
+                                    remarks: '',
+                                    url: ''
+                                };
+
+                                for (let j = 1; j < headers.length && j < values.length; j++) {
+                                    const header = String(headers[j] || '').trim();
+                                    const value = values[j];
+
+                                    if (header.includes('単価') && !header.includes('送料込')) {
+                                        quotation.unitPrice = this.parsePrice(value);
+                                    } else if (header.includes('発注数')) {
+                                        quotation.quantity = parseInt(value, 10) || 0;
+                                    } else if (header.includes('送料')) {
+                                        quotation.shippingFee = this.parsePrice(value);
+                                    } else if (header.includes('合計')) {
+                                        quotation.total = this.parsePrice(value);
+                                    } else if (header.includes('送料込単価')) {
+                                        quotation.unitPriceWithShipping = this.parsePrice(value);
+                                    } else if (header.includes('備考')) {
+                                        quotation.remarks = String(value || '');
+                                    } else if (header.includes('URL')) {
+                                        quotation.url = String(value || '');
+                                    }
+                                }
+
+                                quotations.push(quotation);
+                            }
+                        }
+                    }
+                }
+
+                return quotations;
+            }
+
+            // 価格文字列をパース
+            parsePrice(value) {
+                if (value === undefined || value === null || value === '') return 0;
+                const str = String(value).replace(/[¥￥,\s]/g, '');
+                return parseFloat(str) || 0;
+            }
+
+            // 相見積もり結果を表示
+            displayQuotationResult(quotationData) {
+                const resultArea = document.getElementById('quotationResultArea');
+                const itemNameEl = document.getElementById('quotationItemName');
+                const tableBody = document.getElementById('quotationTableBody');
+                const recommendationEl = document.getElementById('quotationRecommendation');
+
+                if (!resultArea || !quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
+                    if (resultArea) resultArea.classList.add('hidden');
+                    return;
+                }
+
+                // 物品名を表示
+                const displayName = quotationData.itemName || quotationData.modelNumber || '';
+                itemNameEl.textContent = displayName ? `- ${displayName}` : '';
+
+                // テーブルをクリア
+                tableBody.innerHTML = '';
+
+                // 最安値を計算
+                let minPrice = Infinity;
+                let minSupplier = '';
+
+                quotationData.quotations.forEach(q => {
+                    const effectivePrice = q.unitPriceWithShipping || q.unitPrice;
+                    if (effectivePrice > 0 && effectivePrice < minPrice) {
+                        minPrice = effectivePrice;
+                        minSupplier = q.supplier;
+                    }
+                });
+
+                // 各購買先の行を追加
+                quotationData.quotations.forEach(q => {
+                    const effectivePrice = q.unitPriceWithShipping || q.unitPrice;
+                    const isLowest = effectivePrice === minPrice && minPrice !== Infinity;
+                    const rowClass = isLowest ? 'bg-green-50' : '';
+
+                    const row = document.createElement('tr');
+                    row.className = `${rowClass} border-b hover:bg-gray-50`;
+
+                    row.innerHTML = `
+                        <td class="px-3 py-2 font-medium ${isLowest ? 'text-green-700' : ''}">${q.supplier}${isLowest ? ' ⭐' : ''}</td>
+                        <td class="px-3 py-2 text-right">¥${q.unitPrice.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right">${q.quantity}</td>
+                        <td class="px-3 py-2 text-right">¥${q.shippingFee.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right">¥${q.total.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right font-medium ${isLowest ? 'text-green-700' : ''}">¥${(q.unitPriceWithShipping || q.unitPrice).toLocaleString()}</td>
+                        <td class="px-3 py-2 text-gray-600 text-xs">${q.remarks}</td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+
+                // 推奨を表示
+                if (minSupplier && minPrice !== Infinity) {
+                    recommendationEl.innerHTML = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
+
+                    // 前回注文単価との比較
+                    if (quotationData.previousUnitPrice) {
+                        const prevPrice = this.parsePrice(quotationData.previousUnitPrice);
+                        if (prevPrice > 0) {
+                            const diff = minPrice - prevPrice;
+                            const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
+                            if (diff < 0) {
+                                recommendationEl.innerHTML += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
+                            } else if (diff > 0) {
+                                recommendationEl.innerHTML += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
+                            }
+                        }
+                    }
+                } else {
+                    recommendationEl.textContent = '';
+                }
+
+                // 表示
+                resultArea.classList.remove('hidden');
+                console.log('📊 相見積もり結果を表示:', quotationData);
+            }
+
+            // 相見積もり結果を非表示
+            hideQuotationResult() {
+                const resultArea = document.getElementById('quotationResultArea');
+                if (resultArea) {
+                    resultArea.classList.add('hidden');
+                }
+            }
         }
 
         // バージョン管理クラス
@@ -3205,6 +3487,30 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.6.2',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '📊 相見積もり結果表示機能',
+                        changes: [
+                            'Excelから相見積もりデータを自動抽出',
+                            '購買先ごとの単価・送料・合計を一覧表示',
+                            '最安値の購買先を自動判定・ハイライト表示',
+                            '前回注文単価との比較表示'
+                        ]
+                    },
+                    {
+                        version: '2.6.1',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '📄 Excel複数シート対応',
+                        changes: [
+                            'Excelファイルの複数シート読み込みに対応',
+                            '全シートのデータを自動的に結合して生データエリアに入力',
+                            '空のシートは自動スキップ',
+                            '読み込んだシート数を通知メッセージに表示'
+                        ]
+                    },
                     {
                         version: '2.6.0',
                         date: '2025年1月',

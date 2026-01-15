@@ -541,9 +541,10 @@
             // 相見積もりデータをプロジェクトカードに注入
             injectQuotationData() {
                 const excelImporter = window.ExcelImporter;
+                const quotationCount = excelImporter && excelImporter.quotationDataList ? excelImporter.quotationDataList.length : 0;
                 console.log('📊 相見積もり注入開始:', {
                     excelImporter: !!excelImporter,
-                    quotationDataList: excelImporter?.quotationDataList?.length || 0
+                    quotationDataList: quotationCount
                 });
 
                 if (!excelImporter || !excelImporter.quotationDataList || excelImporter.quotationDataList.length === 0) {
@@ -773,7 +774,7 @@
                     
                     <div class="space-y-3">
                         ${results.map((result, index) => {
-                            const spec = result.projectData.basicInfo['仕様'] || '不明';
+                            const spec = (result.projectData && result.projectData.basicInfo && result.projectData.basicInfo['仕様']) || '不明';
                             return `
                                 <div class="flex justify-between items-center p-3 rounded-lg border ${result.overallCheck ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
                                     <span class="font-medium">${index + 1}. ${spec}</span>
@@ -2888,13 +2889,14 @@
             
             formatSingleResult(result, index) {
                 const { projectData } = result;
-                const itemName = projectData.basicInfo['仕様'] || '不明';
-                const modelNumber = projectData.basicInfo['型番'] || '';
-                const stockQuantity = projectData.basicInfo['在庫数'] || '0';
-                const annualUsage = projectData.basicInfo['年間使用数'] || '0';
-                const supplier = projectData.basicInfo['購買先'] || '未指定';
-                const previousPrice = projectData.basicInfo['前回の注文単価'] || '¥0';
-                const previousProcessingFee = projectData.basicInfo['前回注文加工費'] || '¥0';
+                const basicInfo = (projectData && projectData.basicInfo) || {};
+                const itemName = basicInfo['仕様'] || '不明';
+                const modelNumber = basicInfo['型番'] || '';
+                const stockQuantity = basicInfo['在庫数'] || '0';
+                const annualUsage = basicInfo['年間使用数'] || '0';
+                const supplier = basicInfo['購買先'] || '未指定';
+                const previousPrice = basicInfo['前回の注文単価'] || '¥0';
+                const previousProcessingFee = basicInfo['前回注文加工費'] || '¥0';
 
                 const orderReason = this.generateOrderReason(result, annualUsage);
                 const priceReason = this.generatePriceReason(result, previousPrice);
@@ -3028,7 +3030,8 @@ ${priceReason}`;
             
             calculateTotalAmount(results) {
                 const totalAmountWithTax = results.reduce((total, result) => {
-                    const totalAmount = parseFloat(result.totalAmount.replace(/[¥,\s]/g, '')) || 0;
+                    const totalAmountStr = result.totalAmount || '0';
+                    const totalAmount = parseFloat(String(totalAmountStr).replace(/[¥,\s]/g, '')) || 0;
                     return total + totalAmount;
                 }, 0);
 

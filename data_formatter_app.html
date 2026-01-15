@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v2.6.3</span>
+                        <span id="appVersion">v2.6.2</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -77,6 +77,33 @@
                                 placeholder="複数案件の生データを貼り付け（案件ごとに改行区切り）&#10;または Excelファイル(.xlsx/.xls)をドラッグ＆ドロップ"
                             ></textarea>
                             <div class="drop-hint" id="dropHint" style="display: none;">Excelファイルをドロップ</div>
+                        </div>
+                        <!-- 相見積もり結果表示エリア -->
+                        <div id="quotationResultArea" class="mt-4 hidden">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                    <span class="mr-2">📊</span>相見積もり結果
+                                    <span id="quotationItemName" class="ml-2 text-blue-600 font-normal"></span>
+                                </h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                        <thead>
+                                            <tr class="bg-blue-100">
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="quotationTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="quotationRecommendation" class="mt-3 text-sm text-green-700 font-medium"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -368,7 +395,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.6.4';
+                this.version = '2.6.2';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -522,71 +549,17 @@
             
             setupProjectEventListeners() {
                 const projectElements = this.elements.projectsList?.querySelectorAll('[data-project-index]');
-
+                
                 projectElements?.forEach(projectElement => {
                     const eventHandler = new ProjectEventHandler(projectElement, this.validator);
                     eventHandler.setup();
-
+                    
                     // リアルタイム機能の管理
                     projectElement.eventHandler = eventHandler;
                 });
-
-                // 相見積もりデータを注入
-                this.injectQuotationData();
-
+                
                 // リアルタイム機能のグローバル制御を追加
                 this.addRealTimeControls();
-            }
-
-            // 相見積もりデータをプロジェクトカードに注入
-            injectQuotationData() {
-                const excelImporter = window.ExcelImporter;
-                const quotationCount = excelImporter && excelImporter.quotationDataList ? excelImporter.quotationDataList.length : 0;
-                console.log('📊 相見積もり注入開始:', {
-                    excelImporter: !!excelImporter,
-                    quotationDataList: quotationCount
-                });
-
-                if (!excelImporter || !excelImporter.quotationDataList || excelImporter.quotationDataList.length === 0) {
-                    console.log('📊 相見積もりデータなし - スキップ');
-                    return;
-                }
-
-                this.projects.forEach((project, index) => {
-                    const placeholder = document.querySelector(`.quotation-result-placeholder[data-project-index="${index}"]`);
-                    console.log(`📊 プロジェクト${index}: placeholder=${!!placeholder}`);
-                    if (!placeholder) return;
-
-                    const quotationData = excelImporter.findQuotationForProject(index, project.basicInfo);
-                    console.log(`📊 プロジェクト${index}: quotationData=`, quotationData);
-                    if (quotationData) {
-                        const html = excelImporter.generateQuotationHTML(quotationData, index);
-                        console.log(`📊 プロジェクト${index}: HTML生成完了 (${html.length}文字)`);
-                        placeholder.innerHTML = html;
-                    }
-                });
-
-                // 折りたたみボタンのイベントハンドラを設定
-                this.setupQuotationToggleHandlers();
-            }
-
-            // 相見積もり折りたたみボタンのイベントハンドラを設定
-            setupQuotationToggleHandlers() {
-                const toggleBtns = document.querySelectorAll('.quotation-toggle-btn');
-                toggleBtns.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const projectIndex = btn.dataset.projectIndex;
-                        const content = document.querySelector(`.quotation-content[data-project-index="${projectIndex}"]`);
-                        const icon = btn.querySelector('.toggle-icon');
-
-                        if (content) {
-                            content.classList.toggle('hidden');
-                            if (icon) {
-                                icon.textContent = content.classList.contains('hidden') ? '▶' : '▼';
-                            }
-                        }
-                    });
-                });
             }
             
             addRealTimeControls() {
@@ -774,7 +747,7 @@
                     
                     <div class="space-y-3">
                         ${results.map((result, index) => {
-                            const spec = (result.projectData && result.projectData.basicInfo && result.projectData.basicInfo['仕様']) || '不明';
+                            const spec = result.projectData.basicInfo['仕様'] || '不明';
                             return `
                                 <div class="flex justify-between items-center p-3 rounded-lg border ${result.overallCheck ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
                                     <span class="font-medium">${index + 1}. ${spec}</span>
@@ -1438,9 +1411,8 @@
                             ${this.generateBasicInfoSection(basicInfo)}
                             ${this.generateValidationInputSection(application, basicInfo)}
                         </div>
-
+                        
                         <div class="validation-result mt-6 p-4 rounded-lg bg-white border" style="display: none;"></div>
-                        <div class="quotation-result-placeholder" data-project-index="${index}"></div>
                     </div>
                 `;
             }
@@ -2889,14 +2861,13 @@
             
             formatSingleResult(result, index) {
                 const { projectData } = result;
-                const basicInfo = (projectData && projectData.basicInfo) || {};
-                const itemName = basicInfo['仕様'] || '不明';
-                const modelNumber = basicInfo['型番'] || '';
-                const stockQuantity = basicInfo['在庫数'] || '0';
-                const annualUsage = basicInfo['年間使用数'] || '0';
-                const supplier = basicInfo['購買先'] || '未指定';
-                const previousPrice = basicInfo['前回の注文単価'] || '¥0';
-                const previousProcessingFee = basicInfo['前回注文加工費'] || '¥0';
+                const itemName = projectData.basicInfo['仕様'] || '不明';
+                const modelNumber = projectData.basicInfo['型番'] || '';
+                const stockQuantity = projectData.basicInfo['在庫数'] || '0';
+                const annualUsage = projectData.basicInfo['年間使用数'] || '0';
+                const supplier = projectData.basicInfo['購買先'] || '未指定';
+                const previousPrice = projectData.basicInfo['前回の注文単価'] || '¥0';
+                const previousProcessingFee = projectData.basicInfo['前回注文加工費'] || '¥0';
 
                 const orderReason = this.generateOrderReason(result, annualUsage);
                 const priceReason = this.generatePriceReason(result, previousPrice);
@@ -3030,8 +3001,7 @@ ${priceReason}`;
             
             calculateTotalAmount(results) {
                 const totalAmountWithTax = results.reduce((total, result) => {
-                    const totalAmountStr = result.totalAmount || '0';
-                    const totalAmount = parseFloat(String(totalAmountStr).replace(/[¥,\s]/g, '')) || 0;
+                    const totalAmount = parseFloat(result.totalAmount.replace(/[¥,\s]/g, '')) || 0;
                     return total + totalAmount;
                 }, 0);
 
@@ -3046,7 +3016,6 @@ ${priceReason}`;
                 this.wrapper = document.getElementById(textareaId + 'Wrapper');
                 this.dropHint = document.getElementById('dropHint');
                 this.notificationManager = notificationManager;
-                this.quotationDataList = []; // 相見積もりデータリスト
 
                 // フィールドマッピング定義（Excel列名 → 生データキー名）
                 this.fieldMapping = {
@@ -3155,21 +3124,19 @@ ${priceReason}`;
                             this.notificationManager.showSuccess(message);
                             console.log(`📊 Excel読み込み完了: ${file.name} (${allSheetData.length}/${sheetCount}シート)`);
 
-                            // 全シートから相見積もりデータを抽出・保存
-                            this.quotationDataList = [];
-                            for (const sheetName of workbook.SheetNames) {
-                                const worksheet = workbook.Sheets[sheetName];
-                                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-                                const quotationData = this.extractQuotationData(jsonData);
-                                if (quotationData && quotationData.quotations.length > 0) {
-                                    quotationData.sheetName = sheetName;
-                                    this.quotationDataList.push(quotationData);
-                                    console.log(`📊 相見積もりデータ抽出: シート「${sheetName}」`, quotationData);
-                                }
+                            // 相見積もりデータを抽出・表示（1シート目から）
+                            const firstSheetName = workbook.SheetNames[0];
+                            const firstWorksheet = workbook.Sheets[firstSheetName];
+                            const firstSheetJson = XLSX.utils.sheet_to_json(firstWorksheet, { header: 1 });
+                            const quotationData = this.extractQuotationData(firstSheetJson);
+                            if (quotationData) {
+                                this.displayQuotationResult(quotationData);
+                            } else {
+                                this.hideQuotationResult();
                             }
-                            console.log(`📊 相見積もりデータ総数: ${this.quotationDataList.length}件`);
                         } else {
                             this.notificationManager.showError('データの変換に失敗しました。Excelの形式を確認してください。');
+                            this.hideQuotationResult();
                         }
                     } catch (error) {
                         console.error('Excel読み込みエラー:', error);
@@ -3361,16 +3328,19 @@ ${priceReason}`;
 
                     const firstCell = String(row[0] || '').trim();
 
-                    // 購買先1、購買先2、購買先3 のパターンを探す（「購買先」単体は除外）
-                    if (firstCell.match(/^購買先[0-9]+$/)) {
-                        // この行がヘッダー行、次の行がデータ行
-                        const headerRow = row;
+                    // 購買先1、購買先2、購買先3 のパターンを探す
+                    if (firstCell.match(/^購買先[0-9]*$/)) {
+                        // 次の行にヘッダー、その次の行にデータがある想定
+                        const headerRow = jsonData[i];
                         const dataRow = jsonData[i + 1];
 
                         if (dataRow && dataRow.length >= 2) {
                             const supplierName = String(dataRow[0] || '').trim();
-                            // 購買先名が空や数字のみの場合はスキップ
-                            if (supplierName && !supplierName.match(/^[0-9.]+$/)) {
+                            if (supplierName) {
+                                // ヘッダーとデータのマッピング
+                                const headers = headerRow;
+                                const values = dataRow;
+
                                 const quotation = {
                                     supplier: supplierName,
                                     unitPrice: 0,
@@ -3382,19 +3352,19 @@ ${priceReason}`;
                                     url: ''
                                 };
 
-                                for (let j = 1; j < headerRow.length && j < dataRow.length; j++) {
-                                    const header = String(headerRow[j] || '').trim();
-                                    const value = dataRow[j];
+                                for (let j = 1; j < headers.length && j < values.length; j++) {
+                                    const header = String(headers[j] || '').trim();
+                                    const value = values[j];
 
                                     if (header.includes('単価') && !header.includes('送料込')) {
                                         quotation.unitPrice = this.parsePrice(value);
                                     } else if (header.includes('発注数')) {
                                         quotation.quantity = parseInt(value, 10) || 0;
-                                    } else if (header === '送料' || header.match(/^送料$/)) {
+                                    } else if (header.includes('送料')) {
                                         quotation.shippingFee = this.parsePrice(value);
-                                    } else if (header.includes('合計') && !header.includes('送料込')) {
+                                    } else if (header.includes('合計')) {
                                         quotation.total = this.parsePrice(value);
-                                    } else if (header.includes('送料込単価') || header.includes('送料込')) {
+                                    } else if (header.includes('送料込単価')) {
                                         quotation.unitPriceWithShipping = this.parsePrice(value);
                                     } else if (header.includes('備考')) {
                                         quotation.remarks = String(value || '');
@@ -3403,20 +3373,7 @@ ${priceReason}`;
                                     }
                                 }
 
-                                // 合計が0の場合、計算
-                                if (quotation.total === 0 && quotation.unitPrice > 0 && quotation.quantity > 0) {
-                                    quotation.total = quotation.unitPrice * quotation.quantity + quotation.shippingFee;
-                                }
-
-                                // 送料込単価が0の場合、計算
-                                if (quotation.unitPriceWithShipping === 0 && quotation.unitPrice > 0) {
-                                    quotation.unitPriceWithShipping = quotation.quantity > 0
-                                        ? quotation.total / quotation.quantity
-                                        : quotation.unitPrice;
-                                }
-
                                 quotations.push(quotation);
-                                console.log(`📦 購買先データ抽出: ${supplierName}`, quotation);
                             }
                         }
                     }
@@ -3432,38 +3389,24 @@ ${priceReason}`;
                 return parseFloat(str) || 0;
             }
 
-            // プロジェクトに対応する相見積もりデータを検索
-            findQuotationForProject(projectIndex, basicInfo) {
-                if (!this.quotationDataList || this.quotationDataList.length === 0) {
-                    return null;
+            // 相見積もり結果を表示
+            displayQuotationResult(quotationData) {
+                const resultArea = document.getElementById('quotationResultArea');
+                const itemNameEl = document.getElementById('quotationItemName');
+                const tableBody = document.getElementById('quotationTableBody');
+                const recommendationEl = document.getElementById('quotationRecommendation');
+
+                if (!resultArea || !quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
+                    if (resultArea) resultArea.classList.add('hidden');
+                    return;
                 }
 
-                // インデックスで直接マッチング（シートの順序 = プロジェクトの順序と仮定）
-                if (projectIndex < this.quotationDataList.length) {
-                    return this.quotationDataList[projectIndex];
-                }
+                // 物品名を表示
+                const displayName = quotationData.itemName || quotationData.modelNumber || '';
+                itemNameEl.textContent = displayName ? `- ${displayName}` : '';
 
-                // 型番または物品名でマッチング
-                const modelNumber = basicInfo['型番'] || '';
-                const itemName = basicInfo['仕様'] || '';
-
-                for (const quotation of this.quotationDataList) {
-                    if (modelNumber && quotation.modelNumber && quotation.modelNumber === modelNumber) {
-                        return quotation;
-                    }
-                    if (itemName && quotation.itemName && quotation.itemName === itemName) {
-                        return quotation;
-                    }
-                }
-
-                return null;
-            }
-
-            // 相見積もり結果のHTMLを生成
-            generateQuotationHTML(quotationData, projectIndex) {
-                if (!quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
-                    return '';
-                }
+                // テーブルをクリア
+                tableBody.innerHTML = '';
 
                 // 最安値を計算
                 let minPrice = Infinity;
@@ -3477,29 +3420,31 @@ ${priceReason}`;
                     }
                 });
 
-                // テーブル行を生成
-                const rows = quotationData.quotations.map(q => {
+                // 各購買先の行を追加
+                quotationData.quotations.forEach(q => {
                     const effectivePrice = q.unitPriceWithShipping || q.unitPrice;
                     const isLowest = effectivePrice === minPrice && minPrice !== Infinity;
                     const rowClass = isLowest ? 'bg-green-50' : '';
 
-                    return `
-                        <tr class="${rowClass} border-b hover:bg-gray-50">
-                            <td class="px-2 py-1 font-medium text-xs ${isLowest ? 'text-green-700' : ''}">${q.supplier}${isLowest ? ' ⭐' : ''}</td>
-                            <td class="px-2 py-1 text-right text-xs">¥${q.unitPrice.toLocaleString()}</td>
-                            <td class="px-2 py-1 text-right text-xs">${q.quantity}</td>
-                            <td class="px-2 py-1 text-right text-xs">¥${q.shippingFee.toLocaleString()}</td>
-                            <td class="px-2 py-1 text-right text-xs">¥${q.total.toLocaleString()}</td>
-                            <td class="px-2 py-1 text-right text-xs font-medium ${isLowest ? 'text-green-700' : ''}">¥${(q.unitPriceWithShipping || q.unitPrice).toLocaleString()}</td>
-                            <td class="px-2 py-1 text-gray-600 text-xs">${q.remarks || ''}</td>
-                        </tr>
-                    `;
-                }).join('');
+                    const row = document.createElement('tr');
+                    row.className = `${rowClass} border-b hover:bg-gray-50`;
 
-                // 推奨メッセージ
-                let recommendation = '';
+                    row.innerHTML = `
+                        <td class="px-3 py-2 font-medium ${isLowest ? 'text-green-700' : ''}">${q.supplier}${isLowest ? ' ⭐' : ''}</td>
+                        <td class="px-3 py-2 text-right">¥${q.unitPrice.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right">${q.quantity}</td>
+                        <td class="px-3 py-2 text-right">¥${q.shippingFee.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right">¥${q.total.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right font-medium ${isLowest ? 'text-green-700' : ''}">¥${(q.unitPriceWithShipping || q.unitPrice).toLocaleString()}</td>
+                        <td class="px-3 py-2 text-gray-600 text-xs">${q.remarks}</td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+
+                // 推奨を表示
                 if (minSupplier && minPrice !== Infinity) {
-                    recommendation = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
+                    recommendationEl.innerHTML = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
 
                     // 前回注文単価との比較
                     if (quotationData.previousUnitPrice) {
@@ -3508,45 +3453,27 @@ ${priceReason}`;
                             const diff = minPrice - prevPrice;
                             const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
                             if (diff < 0) {
-                                recommendation += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
+                                recommendationEl.innerHTML += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
                             } else if (diff > 0) {
-                                recommendation += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
+                                recommendationEl.innerHTML += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
                             }
                         }
                     }
+                } else {
+                    recommendationEl.textContent = '';
                 }
 
-                return `
-                    <div class="quotation-section mt-4 border-t pt-4">
-                        <button class="quotation-toggle-btn flex items-center text-sm text-blue-600 hover:text-blue-800 mb-2" data-project-index="${projectIndex}">
-                            <span class="toggle-icon mr-1">▶</span>
-                            <span>📊 相見積もり結果を表示（${quotationData.quotations.length}件）</span>
-                        </button>
-                        <div class="quotation-content hidden" data-project-index="${projectIndex}">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-xs">
-                                        <thead>
-                                            <tr class="bg-blue-100">
-                                                <th class="px-2 py-1 text-left font-medium text-blue-800 border-b">購買先</th>
-                                                <th class="px-2 py-1 text-right font-medium text-blue-800 border-b">単価</th>
-                                                <th class="px-2 py-1 text-right font-medium text-blue-800 border-b">発注数</th>
-                                                <th class="px-2 py-1 text-right font-medium text-blue-800 border-b">送料</th>
-                                                <th class="px-2 py-1 text-right font-medium text-blue-800 border-b">合計</th>
-                                                <th class="px-2 py-1 text-right font-medium text-blue-800 border-b">送料込単価</th>
-                                                <th class="px-2 py-1 text-left font-medium text-blue-800 border-b">備考</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${rows}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="mt-2 text-xs text-green-700 font-medium">${recommendation}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                // 表示
+                resultArea.classList.remove('hidden');
+                console.log('📊 相見積もり結果を表示:', quotationData);
+            }
+
+            // 相見積もり結果を非表示
+            hideQuotationResult() {
+                const resultArea = document.getElementById('quotationResultArea');
+                if (resultArea) {
+                    resultArea.classList.add('hidden');
+                }
             }
         }
 
@@ -3560,30 +3487,6 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
-                    {
-                        version: '2.6.4',
-                        date: '2025年1月',
-                        type: 'patch',
-                        title: '🔧 バグ修正と安定性向上',
-                        changes: [
-                            'バージョン情報モーダルを動的生成に変更',
-                            '検証処理のnullチェック強化でエラー防止',
-                            '相見積もりデータ注入処理のデバッグログ追加',
-                            'オプショナルチェイニングを互換性のある記法に変更'
-                        ]
-                    },
-                    {
-                        version: '2.6.3',
-                        date: '2025年1月',
-                        type: 'patch',
-                        title: '📊 相見積もり結果表示の改善',
-                        changes: [
-                            '相見積もり結果をプロジェクトごとに表示（折りたたみ式）',
-                            '複数シートからの相見積もりデータ抽出に対応',
-                            'デフォルトは非表示、クリックで展開表示',
-                            '入力エリアから結果表示エリアへUIを移動'
-                        ]
-                    },
                     {
                         version: '2.6.2',
                         date: '2025年1月',
@@ -3921,61 +3824,9 @@ ${priceReason}`;
             showVersionModal() {
                 const modal = document.getElementById('versionModal');
                 if (modal) {
-                    // モーダル内容を動的に更新
-                    this.updateVersionModalContent();
                     modal.style.display = 'flex';
                     document.body.style.overflow = 'hidden';
                 }
-            }
-
-            // バージョン履歴のHTMLを動的に生成
-            updateVersionModalContent() {
-                const container = document.querySelector('#versionModal .space-y-4');
-                if (!container) return;
-
-                const history = this.versionHistory;
-                if (!history || history.length === 0) return;
-
-                let html = '';
-
-                // 最新バージョン（Latest）
-                const latest = history[0];
-                html += `
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div class="flex items-center mb-2">
-                            <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
-                            <span class="font-bold text-green-700">v${latest.version}</span>
-                            <span class="text-gray-600 ml-2">- ${latest.date}</span>
-                        </div>
-                        <h4 class="font-semibold text-gray-800 mb-2">${latest.title}</h4>
-                        <ul class="text-sm text-gray-700 space-y-1">
-                            ${latest.changes.map(c => `<li>• ${c}</li>`).join('')}
-                        </ul>
-                    </div>
-                `;
-
-                // 過去のバージョン
-                if (history.length > 1) {
-                    html += '<div class="space-y-3">';
-                    for (let i = 1; i < history.length; i++) {
-                        const ver = history[i];
-                        html += `
-                            <div class="border border-gray-200 rounded-lg p-4">
-                                <div class="flex items-center mb-2">
-                                    <span class="font-bold text-gray-700">v${ver.version}</span>
-                                    <span class="text-gray-600 ml-2">- ${ver.date}</span>
-                                </div>
-                                <h4 class="font-semibold text-gray-800 mb-2">${ver.title}</h4>
-                                <ul class="text-sm text-gray-700 space-y-1">
-                                    ${ver.changes.map(c => `<li>• ${c}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `;
-                    }
-                    html += '</div>';
-                }
-
-                container.innerHTML = html;
             }
             
             hideVersionModal() {

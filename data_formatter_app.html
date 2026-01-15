@@ -368,7 +368,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '2.6.3';
+                this.version = '2.6.4';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3560,6 +3560,18 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '2.6.4',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '🔧 バグ修正と安定性向上',
+                        changes: [
+                            'バージョン情報モーダルを動的生成に変更',
+                            '検証処理のnullチェック強化でエラー防止',
+                            '相見積もりデータ注入処理のデバッグログ追加',
+                            'オプショナルチェイニングを互換性のある記法に変更'
+                        ]
+                    },
                     {
                         version: '2.6.3',
                         date: '2025年1月',

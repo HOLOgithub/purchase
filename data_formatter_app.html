@@ -541,17 +541,27 @@
             // 相見積もりデータをプロジェクトカードに注入
             injectQuotationData() {
                 const excelImporter = window.ExcelImporter;
+                console.log('📊 相見積もり注入開始:', {
+                    excelImporter: !!excelImporter,
+                    quotationDataList: excelImporter?.quotationDataList?.length || 0
+                });
+
                 if (!excelImporter || !excelImporter.quotationDataList || excelImporter.quotationDataList.length === 0) {
+                    console.log('📊 相見積もりデータなし - スキップ');
                     return;
                 }
 
                 this.projects.forEach((project, index) => {
                     const placeholder = document.querySelector(`.quotation-result-placeholder[data-project-index="${index}"]`);
+                    console.log(`📊 プロジェクト${index}: placeholder=${!!placeholder}`);
                     if (!placeholder) return;
 
                     const quotationData = excelImporter.findQuotationForProject(index, project.basicInfo);
+                    console.log(`📊 プロジェクト${index}: quotationData=`, quotationData);
                     if (quotationData) {
-                        placeholder.innerHTML = excelImporter.generateQuotationHTML(quotationData, index);
+                        const html = excelImporter.generateQuotationHTML(quotationData, index);
+                        console.log(`📊 プロジェクト${index}: HTML生成完了 (${html.length}文字)`);
+                        placeholder.innerHTML = html;
                     }
                 });
 
@@ -3896,9 +3906,61 @@ ${priceReason}`;
             showVersionModal() {
                 const modal = document.getElementById('versionModal');
                 if (modal) {
+                    // モーダル内容を動的に更新
+                    this.updateVersionModalContent();
                     modal.style.display = 'flex';
                     document.body.style.overflow = 'hidden';
                 }
+            }
+
+            // バージョン履歴のHTMLを動的に生成
+            updateVersionModalContent() {
+                const container = document.querySelector('#versionModal .space-y-4');
+                if (!container) return;
+
+                const history = this.versionHistory;
+                if (!history || history.length === 0) return;
+
+                let html = '';
+
+                // 最新バージョン（Latest）
+                const latest = history[0];
+                html += `
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
+                            <span class="font-bold text-green-700">v${latest.version}</span>
+                            <span class="text-gray-600 ml-2">- ${latest.date}</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-800 mb-2">${latest.title}</h4>
+                        <ul class="text-sm text-gray-700 space-y-1">
+                            ${latest.changes.map(c => `<li>• ${c}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+
+                // 過去のバージョン
+                if (history.length > 1) {
+                    html += '<div class="space-y-3">';
+                    for (let i = 1; i < history.length; i++) {
+                        const ver = history[i];
+                        html += `
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center mb-2">
+                                    <span class="font-bold text-gray-700">v${ver.version}</span>
+                                    <span class="text-gray-600 ml-2">- ${ver.date}</span>
+                                </div>
+                                <h4 class="font-semibold text-gray-800 mb-2">${ver.title}</h4>
+                                <ul class="text-sm text-gray-700 space-y-1">
+                                    ${ver.changes.map(c => `<li>• ${c}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
             }
             
             hideVersionModal() {

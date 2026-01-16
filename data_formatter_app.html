@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>スマート調達分析システム（SPAS）</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,6 +16,27 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        /* ドラッグ＆ドロップ用スタイル */
+        .drag-over {
+            border: 2px dashed #3b82f6 !important;
+            background-color: #eff6ff !important;
+        }
+        .drop-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(59, 130, 246, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .textarea-wrapper {
+            position: relative;
         }
     </style>
 </head>
@@ -46,15 +68,45 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            生データ
+                            生データ <span class="text-xs text-gray-500 ml-2">（Excelファイルをドラッグ＆ドロップ可能）</span>
                         </label>
-                        <textarea
-                            id="inputData"
-                            class="w-full h-32 p-3 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                            placeholder="複数案件の生データを貼り付け（案件ごとに改行区切り）"
-                        ></textarea>
+                        <div class="textarea-wrapper" id="inputDataWrapper">
+                            <textarea
+                                id="inputData"
+                                class="w-full h-32 p-3 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                placeholder="複数案件の生データを貼り付け（案件ごとに改行区切り）&#10;または Excelファイル(.xlsx/.xls)をドラッグ＆ドロップ"
+                            ></textarea>
+                            <div class="drop-hint" id="dropHint" style="display: none;">Excelファイルをドロップ</div>
+                        </div>
+                        <!-- 相見積もり結果表示エリア -->
+                        <div id="quotationResultArea" class="mt-4 hidden">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                    <span class="mr-2">📊</span>相見積もり結果
+                                    <span id="quotationItemName" class="ml-2 text-blue-600 font-normal"></span>
+                                </h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                        <thead>
+                                            <tr class="bg-blue-100">
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="quotationTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="quotationRecommendation" class="mt-3 text-sm text-green-700 font-medium"></div>
+                            </div>
+                        </div>
                     </div>
-                    
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             申請単価・注文数データ
@@ -161,25 +213,25 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Version History -->
                     <div class="space-y-3">
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center mb-2">
-                                <span class="font-bold text-gray-700">v2.4.3</span>
-                                <span class="text-gray-600 ml-2">- 2024年12月（出力表示機能改善版）</span>
+                                <span class="font-bold text-gray-700">v2.6.x</span>
+                                <span class="text-gray-600 ml-2">- 2024年12月（Excel/相見積もり機能版）</span>
                             </div>
-                            <h4 class="font-semibold text-gray-800 mb-2">📋 出力表示機能改善</h4>
+                            <h4 class="font-semibold text-gray-800 mb-2">📊 Excel・相見積もり機能</h4>
                             <ul class="text-sm text-gray-700 space-y-1">
-                                <li>• 加工費比較ON/OFF時の条件分岐表示</li>
-                                <li>• 専用出力フォーマット実装</li>
-                                <li>• 出力精度向上</li>
+                                <li>• Excelファイルドラッグ&ドロップ対応</li>
+                                <li>• 相見積もり結果の自動解析・表示</li>
+                                <li>• プロジェクトカード折りたたみ表示</li>
                             </ul>
                         </div>
 
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center mb-2">
-                                <span class="font-bold text-gray-700">v2.3.4</span>
+                                <span class="font-bold text-gray-700">v2.4.4</span>
                                 <span class="text-gray-600 ml-2">- 2024年12月（加工費比較機能追加版）</span>
                             </div>
                             <h4 class="font-semibold text-gray-800 mb-2">🔧 加工費比較機能実装</h4>
@@ -389,6 +441,7 @@
          * - TextFormatter: 出力フォーマッタ
          * - VersionManager: バージョン管理
          * - NotificationManager: 通知管理
+         * - ExcelProcessor: Excel処理
          * =============================================================================
          */
 
@@ -921,7 +974,9 @@
                 const keyMapping = {
                     '前回の注文加工費': '前回注文加工費',
                     '前回注文加工費': '前回注文加工費',
-                    '加工費': '前回注文加工費'
+                    '加工費': '前回注文加工費',
+                    '仕訳科目': '科目',
+                    '科目': '科目'
                 };
 
                 // マッピングされたデータで基本情報を更新
@@ -945,9 +1000,10 @@
                     '年間使用数': mappedInfo['年間使用数'] || '0',
                     '購買先': mappedInfo['購買先'] || '未指定',
                     '前回の注文単価': mappedInfo['前回の注文単価'] || '¥0',
-                    '前回注文加工費': mappedInfo['前回注文加工費'] || '¥0'
+                    '前回注文加工費': mappedInfo['前回注文加工費'] || '¥0',
+                    '科目': mappedInfo['科目'] || '未指定'
                 };
-                
+
                 // 既存データを優先し、不足分をフォールバックで補完
                 return { ...fallbacks, ...mappedInfo };
             }
@@ -1000,32 +1056,60 @@
             parseApplicationData(text) {
                 const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
                 const applicationMap = new Map();
-                
+
                 for (const line of lines) {
                     if (line.startsWith('http')) continue;
-                    
-                    // より柔軟なパターンマッチング
-                    const patterns = [
-                        /^(.+?)[:：]\s*@?(\d+(?:,\d{3})*)円?\s*\/\s*(\d+)個?/,  // 基本パターン
-                        /^(.+?)\s+(\d+(?:,\d{3})*)円?\s*\/\s*(\d+)個?/,        // スペース区切り
-                        /^(.+?)\s*@(\d+(?:,\d{3})*)\/(\d+)/                    // @区切り
+
+                    // 科目を含むパターンマッチング
+                    // パターン: 科目:仕様:単価/数量 または 仕様:単価/数量
+                    const patternsWithSubject = [
+                        /^(.+?)[:：](.+?)[:：]\s*@?([\d,.]+)円?\s*\/\s*(\d+)個?/,  // 科目:仕様:単価/数量
+                        /^(.+?)[:：](.+?)\s+([\d,.]+)円?\s*\/\s*(\d+)個?/          // 科目:仕様 単価/数量
                     ];
-                    
+
+                    let matched = false;
+                    for (const pattern of patternsWithSubject) {
+                        const match = line.match(pattern);
+                        if (match) {
+                            const [, subject, spec, price, quantity] = match;
+                            const cleanSpec = spec.trim();
+                            const cleanSubject = subject.trim();
+                            applicationMap.set(cleanSpec, {
+                                unitPrice: parseFloat(price.replace(/,/g, '')),
+                                quantity: parseInt(quantity),
+                                subject: cleanSubject
+                            });
+                            console.log(`📊 申請データ解析: ${cleanSubject}:${cleanSpec} -> 単価:${price}円, 数量:${quantity}個`);
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (matched) continue;
+
+                    // より柔軟なパターンマッチング - 小数点を含む価格にも対応（科目なし）
+                    const patterns = [
+                        /^(.+?)[:：]\s*@?([\d,.]+)円?\s*\/\s*(\d+)個?/,  // 基本パターン（小数点対応）
+                        /^(.+?)\s+([\d,.]+)円?\s*\/\s*(\d+)個?/,        // スペース区切り（小数点対応）
+                        /^(.+?)\s*@([\d,.]+)\/(\d+)/                    // @区切り（小数点対応）
+                    ];
+
                     for (const pattern of patterns) {
                         const match = line.match(pattern);
                         if (match) {
                             const [, spec, price, quantity] = match;
                             const cleanSpec = spec.trim();
                             applicationMap.set(cleanSpec, {
-                                unitPrice: parseInt(price.replace(/,/g, '')),
-                                quantity: parseInt(quantity)
+                                unitPrice: parseFloat(price.replace(/,/g, '')),
+                                quantity: parseInt(quantity),
+                                subject: '' // 科目なし
                             });
                             console.log(`📊 申請データ解析: ${cleanSpec} -> 単価:${price}円, 数量:${quantity}個`);
                             break;
                         }
                     }
                 }
-                
+
                 console.log(`✅ 申請データ解析完了: ${applicationMap.size}件`);
                 return applicationMap;
             }
@@ -1055,7 +1139,10 @@
                     supplierModel: projectElement.querySelector('.supplier-model')?.value?.trim() || '',
                     zaicoDrawingNo: projectElement.querySelector('.zaico-drawing-no')?.value?.trim() || '',
                     supplierDrawingNo: projectElement.querySelector('.supplier-drawing-no')?.value?.trim() || '',
+                    zaicoSubject: projectElement.querySelector('.zaico-subject')?.value?.trim() || '',
+                    supplierSubject: projectElement.querySelector('.supplier-subject')?.value?.trim() || '',
                     isBestPrice: projectElement.querySelector('.best-price')?.checked || false,
+                    hasOneYearOrder: projectElement.querySelector('.one-year-order')?.checked || false,
                     hasSpecialReason: projectElement.querySelector('.special-reason')?.checked || false,
                     specialReasonDetail: projectElement.querySelector('.special-reason-detail')?.value?.trim() || '',
                     hasSpecialAdoption: projectElement.querySelector('.special-adoption')?.checked || false,
@@ -1066,6 +1153,8 @@
                     hasNoDrawingNumber: projectElement.querySelector('.no-drawing-number')?.checked || false,
                     hasDrawingException: projectElement.querySelector('.drawing-exception')?.checked || false,
                     drawingExceptionDetail: projectElement.querySelector('.drawing-exception-detail')?.value?.trim() || '',
+                    hasSubjectException: projectElement.querySelector('.subject-exception')?.checked || false,
+                    subjectExceptionDetail: projectElement.querySelector('.subject-exception-detail')?.value?.trim() || '',
                     hasProcessingFeeComparison: projectElement.querySelector('.processing-fee-comparison')?.checked || false,
                     hasProcessingFeeIncrease: projectElement.querySelector('.processing-fee-increase')?.checked || false,
                     processingFeeIncreaseDetail: projectElement.querySelector('.processing-fee-increase-detail')?.value?.trim() || ''
@@ -1076,21 +1165,24 @@
                 const annualUsage = parseInt(projectData.basicInfo['年間使用数']) || 0;
                 const previousPriceStr = projectData.basicInfo['前回の注文単価'] || '¥0';
                 const previousPrice = parseFloat(previousPriceStr.replace(/[¥,\s]/g, ''));
-                
+
                 // 注文数検証
                 const isInNormalRange = formData.orderQuantity >= annualUsage / 2 && formData.orderQuantity <= annualUsage;
-                const orderCheck = isInNormalRange || (formData.hasSpecialReason && formData.specialReasonDetail !== '');
-                
+                const orderCheck = isInNormalRange || formData.hasOneYearOrder || (formData.hasSpecialReason && formData.specialReasonDetail !== '');
+
                 // 価格検証
                 const calculatedPrice = this.calculateUnitPrice(formData.totalAmount, formData.orderQuantity, formData.taxIncluded);
                 const priceCheck = this.validatePrice(calculatedPrice, previousPrice, formData);
-                
+
                 // 型番検証
                 const modelCheck = this.validateModel(formData);
-                
+
                 // 図番検証
                 const drawingCheck = this.validateDrawing(formData);
-                
+
+                // 科目検証
+                const subjectCheck = this.validateSubject(formData);
+
                 // 加工費検証
                 const processingFeeCheck = this.validateProcessingFee(formData, projectData);
 
@@ -1106,9 +1198,10 @@
                     priceCheck,
                     modelCheck,
                     drawingCheck,
+                    subjectCheck,
                     processingFeeCheck,
                     unitPriceMatch,
-                    overallCheck: orderCheck && priceCheck && modelCheck && drawingCheck && processingFeeCheck && unitPriceMatch,
+                    overallCheck: orderCheck && priceCheck && modelCheck && drawingCheck && subjectCheck && processingFeeCheck && unitPriceMatch,
                     calculatedPrice: calculatedPrice.toFixed(2),
                     processingFeeDetails,
                     ...formData
@@ -1163,15 +1256,26 @@
                 if (formData.hasNoDrawingNumber) {
                     return true;
                 }
-                
+
                 // 図番が一致している場合はOK
-                const drawingsMatch = formData.zaicoDrawingNo !== '' && formData.supplierDrawingNo !== '' && 
+                const drawingsMatch = formData.zaicoDrawingNo !== '' && formData.supplierDrawingNo !== '' &&
                                     formData.zaicoDrawingNo.replace(/\s/g, '') === formData.supplierDrawingNo.replace(/\s/g, '');
-                
+
                 // 図番不一致の特別事情がある場合はOK
                 const hasException = formData.hasDrawingException && formData.drawingExceptionDetail !== '';
-                
+
                 return drawingsMatch || hasException;
+            }
+
+            validateSubject(formData) {
+                // 科目が一致している場合はOK
+                const subjectsMatch = formData.zaicoSubject !== '' && formData.supplierSubject !== '' &&
+                                     formData.zaicoSubject.replace(/\s/g, '') === formData.supplierSubject.replace(/\s/g, '');
+
+                // 科目不一致の特別事情がある場合はOK
+                const hasException = formData.hasSubjectException && formData.subjectExceptionDetail !== '';
+
+                return subjectsMatch || hasException;
             }
             
             validateProcessingFee(formData, projectData) {
@@ -1370,7 +1474,7 @@
                         
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             ${this.generateBasicInfoSection(basicInfo)}
-                            ${this.generateValidationInputSection(application)}
+                            ${this.generateValidationInputSection(application, basicInfo)}
                         </div>
                         
                         <div class="validation-result mt-6 p-4 rounded-lg bg-white border" style="display: none;"></div>
@@ -1579,14 +1683,14 @@
                 `;
             }
             
-            generateValidationInputSection(application) {
+            generateValidationInputSection(application, basicInfo) {
                 return `
                     <div class="space-y-4">
                         <h5 class="font-semibold text-gray-700 border-b pb-2">検証データ入力</h5>
-                        
+
                         ${this.generateOrderQuantitySection(application)}
-                        ${this.generatePriceSection(application)}
-                        ${this.generateModelSection()}
+                        ${this.generatePriceSection(application, basicInfo)}
+                        ${this.generateModelSection(basicInfo)}
                     </div>
                 `;
             }
@@ -1595,34 +1699,46 @@
                 return `
                     <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                         ${this.generateInputField('注文数', 'number', 'order-quantity', application?.quantity || '', '年間使用数の半年～1年分')}
-                        
+
                         <!-- 注文数関連チェックボックス -->
-                        <div class="mt-3">
+                        <div class="mt-3 space-y-2">
                             <label class="inline-flex items-center">
-                                <input type="checkbox" class="special-reason rounded text-blue-600 focus:ring-blue-500" />
-                                <span class="ml-2 text-sm text-gray-700">特別な理由（注文数が範囲外の場合）</span>
+                                <input type="checkbox" class="one-year-order rounded text-blue-600 focus:ring-blue-500" />
+                                <span class="ml-2 text-sm text-gray-700">注文数約1年分</span>
                             </label>
-                            
-                            <div class="special-reason-text mt-2" style="display: none;">
-                                <textarea
-                                    class="special-reason-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
-                                    rows="2"
-                                    placeholder="注文数が年間使用数の範囲外である特別な理由を記載してください"
-                                ></textarea>
+
+                            <div>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="special-reason rounded text-blue-600 focus:ring-blue-500" />
+                                    <span class="ml-2 text-sm text-gray-700">特別な理由（注文数が範囲外の場合）</span>
+                                </label>
+
+                                <div class="special-reason-text mt-2" style="display: none;">
+                                    <textarea
+                                        class="special-reason-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                                        rows="2"
+                                        placeholder="注文数が年間使用数の範囲外である特別な理由を記載してください"
+                                    ></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
             }
             
-            generatePriceSection(application) {
+            generatePriceSection(application, basicInfo = {}) {
+                // 科目が「仕掛品」の場合は加工費比較をデフォルトでチェック
+                const subject = basicInfo['科目'] || '';
+                const isProcessingFeeChecked = subject === '仕掛品';
+                const processingFeeDisplayStyle = isProcessingFeeChecked ? 'block' : 'none';
+
                 return `
                     <div class="bg-green-50 p-4 rounded-lg border border-green-200">
                         ${this.generateInputField('申請単価', 'text', 'application-price', application ? '¥' + application.unitPrice : '', '')}
-                        
+
                         <div class="space-y-3">
                             ${this.generateInputField('商品総額', 'text', 'total-amount', application ? '¥' + (application.unitPrice * application.quantity) : '', '')}
-                            
+
                             <!-- 税込/税抜チェックボックス -->
                             <div class="bg-white p-3 rounded border border-green-300">
                                 <label class="inline-flex items-center">
@@ -1635,21 +1751,21 @@
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div class="calculation-display mt-3 text-sm bg-white p-3 rounded border border-green-300" style="display: none;"></div>
-                        
+
                         <!-- 価格関連チェックボックス -->
                         <div class="mt-4 space-y-2">
                             <label class="inline-flex items-center">
                                 <input type="checkbox" class="best-price rounded text-green-600 focus:ring-green-500" />
                                 <span class="ml-2 text-sm text-gray-700">📊 相見積もりで最安値</span>
                             </label>
-                            
+
                             <label class="inline-flex items-center">
                                 <input type="checkbox" class="special-adoption rounded text-green-600 focus:ring-green-500" />
                                 <span class="ml-2 text-sm text-gray-700">⚠️ 特別採用（価格上昇の特別事情）</span>
                             </label>
-                            
+
                             <div class="special-adoption-text mt-2" style="display: none;">
                                 <textarea
                                     class="special-adoption-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors text-sm"
@@ -1657,19 +1773,20 @@
                                     placeholder="価格上昇の特別事情・理由を詳しく記載してください"
                                 ></textarea>
                             </div>
-                            
+
                             <!-- 加工費比較チェックボックス -->
                             <div class="border border-green-200 rounded-lg p-3 bg-green-50">
                                 <label class="inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="processing-fee-comparison rounded text-green-600 focus:ring-green-500" />
+                                    <input type="checkbox" class="processing-fee-comparison rounded text-green-600 focus:ring-green-500" ${isProcessingFeeChecked ? 'checked' : ''} />
                                     <span class="ml-2 text-sm font-medium text-green-700">🔧 加工費比較を有効にする</span>
                                 </label>
                                 <p class="text-xs text-green-600 mt-1 ml-6">
                                     前回注文加工費と申請単価を自動比較し、申請単価が上昇時は理由記載が必要です
+                                    ${isProcessingFeeChecked ? '<br><strong>※ 科目が「仕掛品」のため自動的にチェックされています</strong>' : ''}
                                 </p>
                             </div>
-                            
-                            <div class="processing-fee-section mt-2" style="display: none;">
+
+                            <div class="processing-fee-section mt-2" style="display: ${processingFeeDisplayStyle};">
                                 <div class="bg-white p-3 rounded border border-green-300">
                                     <div class="mb-3">
                                         <div class="grid grid-cols-2 gap-3">
@@ -1712,7 +1829,10 @@
                 `;
             }
             
-            generateModelSection() {
+            generateModelSection(basicInfo = {}) {
+                const zaicoModel = basicInfo['型番'] || '';
+                const zaicoSubject = basicInfo['科目'] || '';
+
                 return `
                     <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
                         <!-- 型番チェック -->
@@ -1725,7 +1845,7 @@
                                         type="text"
                                         class="zaico-model w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                         placeholder="ZAICO型番"
-                                        value=""
+                                        value="${zaicoModel}"
                                     />
                                 </div>
                                 <div>
@@ -1786,7 +1906,7 @@
                                     />
                                 </div>
                             </div>
-                            
+
                             <!-- 図番関連チェックボックス -->
                             <div class="space-y-2">
                                 <div>
@@ -1795,18 +1915,65 @@
                                         <span class="ml-2 text-sm text-gray-700">📝 図番なし</span>
                                     </label>
                                 </div>
-                                
+
                                 <div>
                                     <label class="inline-flex items-center">
                                         <input type="checkbox" class="drawing-exception rounded text-purple-600 focus:ring-purple-500" />
                                         <span class="ml-2 text-sm text-gray-700">図番不一致の特別事情</span>
                                     </label>
-                                    
+
                                     <div class="drawing-exception-text mt-2" style="display: none;">
                                         <textarea
                                             class="drawing-exception-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-sm"
                                             rows="2"
                                             placeholder="図番が不一致である理由を詳しく記載してください"
+                                        ></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 科目チェック -->
+                        <div class="mt-6 pt-4 border-t border-purple-200">
+                            <h6 class="font-medium text-purple-700 mb-3">📋 科目チェック</h6>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ZAICO科目</label>
+                                    <input
+                                        type="text"
+                                        class="zaico-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                        placeholder="ZAICO科目"
+                                        value="${zaicoSubject}"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">仕訳科目</label>
+                                    <select
+                                        class="supplier-subject w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
+                                    >
+                                        <option value="">選択してください</option>
+                                        <option value="原材料">原材料</option>
+                                        <option value="仕掛品">仕掛品</option>
+                                        <option value="貯蔵品">貯蔵品</option>
+                                        <option value="研究開発費">研究開発費</option>
+                                        <option value="技術・製造">技術・製造</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 科目関連チェックボックス -->
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" class="subject-exception rounded text-purple-600 focus:ring-purple-500" />
+                                        <span class="ml-2 text-sm text-gray-700">科目不一致の特別事情</span>
+                                    </label>
+
+                                    <div class="subject-exception-text mt-2" style="display: none;">
+                                        <textarea
+                                            class="subject-exception-detail w-full p-2 border rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors text-sm"
+                                            rows="2"
+                                            placeholder="科目が不一致である理由を詳しく記載してください"
                                         ></textarea>
                                     </div>
                                 </div>
@@ -2263,36 +2430,41 @@
             setupRealTimeValidation() {
                 // 全ての入力フィールドを監視
                 const watchedInputs = this.projectElement.querySelectorAll(
-                    '.order-quantity, .application-price, .total-amount, .zaico-model, .supplier-model, .zaico-drawing-no, .supplier-drawing-no'
+                    '.order-quantity, .application-price, .total-amount, .zaico-model, .supplier-model, .zaico-drawing-no, .supplier-drawing-no, .zaico-subject, .supplier-subject'
                 );
-                
+
                 watchedInputs.forEach(input => {
                     input.addEventListener('input', () => {
                         this.addInputValidationStyle(input);
                         this.triggerRealTimeValidation();
+
+                        // ZAICO科目が「仕掛品」に変更された場合、加工費比較を自動チェック
+                        if (input.classList.contains('zaico-subject')) {
+                            this.handleSubjectChange(input.value);
+                        }
                     });
-                    
+
                     input.addEventListener('focus', () => {
                         this.addFocusStyle(input);
                     });
-                    
+
                     input.addEventListener('blur', () => {
                         this.removeFocusStyle(input);
                         this.triggerRealTimeValidation(true);
                     });
                 });
-                
+
                 // チェックボックスも監視
                 const checkboxes = this.projectElement.querySelectorAll(
                     '.best-price, .special-reason, .special-adoption, .model-exception, .no-drawing-number, .drawing-exception, .processing-fee-comparison, .processing-fee-increase'
                 );
-                
+
                 checkboxes.forEach(checkbox => {
                     checkbox.addEventListener('change', () => {
                         this.triggerRealTimeValidation(true);
                     });
                 });
-                
+
                 // テキストエリアも監視
                 const textareas = this.projectElement.querySelectorAll('textarea');
                 textareas.forEach(textarea => {
@@ -2480,20 +2652,26 @@
                 // 注文数フィールドの状態更新
                 const orderQuantityInput = this.projectElement.querySelector('.order-quantity');
                 this.updateInputValidationState(orderQuantityInput, result.orderCheck);
-                
+
                 // 申請単価フィールドの状態更新
                 const applicationPriceInput = this.projectElement.querySelector('.application-price');
                 this.updateInputValidationState(applicationPriceInput, result.unitPriceMatch);
-                
+
                 // 商品総額フィールドの状態更新
                 const totalAmountInput = this.projectElement.querySelector('.total-amount');
                 this.updateInputValidationState(totalAmountInput, result.unitPriceMatch);
-                
+
                 // 型番フィールドの状態更新
                 const zaicoModelInput = this.projectElement.querySelector('.zaico-model');
                 const supplierModelInput = this.projectElement.querySelector('.supplier-model');
                 this.updateInputValidationState(zaicoModelInput, result.modelCheck);
                 this.updateInputValidationState(supplierModelInput, result.modelCheck);
+
+                // 科目フィールドの状態更新
+                const zaicoSubjectInput = this.projectElement.querySelector('.zaico-subject');
+                const supplierSubjectInput = this.projectElement.querySelector('.supplier-subject');
+                this.updateInputValidationState(zaicoSubjectInput, result.subjectCheck);
+                this.updateInputValidationState(supplierSubjectInput, result.subjectCheck);
             }
             
             updateInputValidationState(input, isValid) {
@@ -2546,31 +2724,70 @@
             clearValidationCache() {
                 this.validationCache.clear();
             }
-            
+
+            handleSubjectChange(subjectValue) {
+                const processingFeeCheckbox = this.projectElement.querySelector('.processing-fee-comparison');
+                const processingFeeSection = this.projectElement.querySelector('.processing-fee-section');
+
+                if (!processingFeeCheckbox || !processingFeeSection) return;
+
+                // 科目が「仕掛品」の場合、加工費比較を自動チェック
+                if (subjectValue.trim() === '仕掛品') {
+                    processingFeeCheckbox.checked = true;
+                    processingFeeSection.style.display = 'block';
+
+                    // 前回加工費を表示
+                    const projectIndex = parseInt(this.projectElement.dataset.projectIndex);
+                    const projectData = window.DataFormatterApp?.projects?.[projectIndex];
+
+                    if (projectData) {
+                        const previousFeeDisplay = processingFeeSection.querySelector('.processing-fee-previous');
+                        const applicationPriceDisplay = processingFeeSection.querySelector('.application-price-display');
+
+                        if (previousFeeDisplay) {
+                            const previousFee = projectData.basicInfo['前回注文加工費'] || '¥0';
+                            previousFeeDisplay.textContent = previousFee;
+                            previousFeeDisplay.className = previousFeeDisplay.className.replace('text-gray-600', 'text-green-700 font-medium');
+                        }
+
+                        if (applicationPriceDisplay) {
+                            const applicationPriceInput = this.projectElement.querySelector('.application-price');
+                            const currentPrice = applicationPriceInput?.value || '未入力';
+                            applicationPriceDisplay.textContent = currentPrice === '未入力' ? '申請単価を入力してください' : currentPrice;
+                        }
+                    }
+                }
+            }
+
             setupCheckboxToggles() {
                 const checkboxConfigs = [
-                    { 
-                        checkbox: '.special-reason', 
+                    {
+                        checkbox: '.special-reason',
                         textArea: '.special-reason-text',
                         description: '注文数の特別理由'
                     },
-                    { 
-                        checkbox: '.special-adoption', 
+                    {
+                        checkbox: '.special-adoption',
                         textArea: '.special-adoption-text',
                         description: '価格上昇の特別事情'
                     },
-                    { 
-                        checkbox: '.model-exception', 
+                    {
+                        checkbox: '.model-exception',
                         textArea: '.model-exception-text',
                         description: '型番不一致の特別事情'
                     },
-                    { 
-                        checkbox: '.drawing-exception', 
+                    {
+                        checkbox: '.drawing-exception',
                         textArea: '.drawing-exception-text',
                         description: '図番不一致の特別事情'
                     },
-                    { 
-                        checkbox: '.processing-fee-increase', 
+                    {
+                        checkbox: '.subject-exception',
+                        textArea: '.subject-exception-text',
+                        description: '科目不一致の特別事情'
+                    },
+                    {
+                        checkbox: '.processing-fee-increase',
                         textArea: '.processing-fee-increase-text',
                         description: '加工費上昇の特別事情'
                     }
@@ -2724,12 +2941,13 @@
                 const supplier = projectData.basicInfo['購買先'] || '未指定';
                 const previousPrice = projectData.basicInfo['前回の注文単価'] || '¥0';
                 const previousProcessingFee = projectData.basicInfo['前回注文加工費'] || '¥0';
-                
+
                 const orderReason = this.generateOrderReason(result, annualUsage);
                 const priceReason = this.generatePriceReason(result, previousPrice);
                 const modelReason = this.generateModelReason(result);
+                const subjectReason = this.generateSubjectReason(result);
                 const modelDisplay = this.getModelDisplay(result, modelNumber, itemName);
-                
+
                 // 加工費比較の表示を生成
                 const processingFeeDisplay = this.generateProcessingFeeDisplay(result, projectData, previousProcessingFee);
 
@@ -2743,7 +2961,11 @@
 ${processingFeeDisplay}型番/仕様${result.modelCheck ? 'OK' : 'NG'}
 　ZAICO型番　：${result.zaicoModel}
 　見積/購買先：${result.supplierModel}
-　⇒${modelReason}`;
+　⇒${modelReason}
+科目${result.subjectCheck ? 'OK' : 'NG'}
+　ZAICO科目：${result.zaicoSubject}
+　仕訳科目　：${result.supplierSubject}
+　⇒${subjectReason}`;
             }
 
             generateProcessingFeeDisplay(result, projectData, previousProcessingFee) {
@@ -2783,9 +3005,11 @@ ${priceReason}`;
             generateOrderReason(result, annualUsage) {
                 const annualUsageNum = parseInt(annualUsage);
                 const isInNormalRange = result.orderQuantity >= annualUsageNum / 2 && result.orderQuantity <= annualUsageNum;
-                
+
                 if (result.hasSpecialReason && result.specialReasonDetail) {
                     return result.specialReasonDetail;
+                } else if (result.hasOneYearOrder) {
+                    return '注文数は約1年分のためOK';
                 } else if (isInNormalRange) {
                     return '半年から1年分の注文数のためOK';
                 } else {
@@ -2809,9 +3033,22 @@ ${priceReason}`;
             
             generateModelReason(result) {
                 if (result.modelCheck) {
-                    return result.hasModelException ? result.modelExceptionDetail : '一致確認';
+                    if (result.hasModelException) {
+                        return result.modelExceptionDetail;
+                    }
+                    return result.hasSpecMatchConfirmed ? '仕様の一致確認' : '型番の一致確認';
                 }
                 return '型番が一致していません';
+            }
+
+            generateSubjectReason(result) {
+                if (result.subjectCheck) {
+                    if (result.hasSubjectException) {
+                        return result.subjectExceptionDetail;
+                    }
+                    return '科目の一致確認';
+                }
+                return '科目が一致していません';
             }
             
             getModelDisplay(result, modelNumber, itemName) {
@@ -2840,11 +3077,483 @@ ${priceReason}`;
                     const totalAmount = parseFloat(result.totalAmount.replace(/[¥,\s]/g, '')) || 0;
                     return total + totalAmount;
                 }, 0);
-                
+
                 return `税抜総額：¥${totalAmountWithTax.toLocaleString()}`;
             }
         }
-        
+
+        /**
+         * Excelインポートクラス
+         * Excel(.xlsx/.xls)ファイルのドラッグ&ドロップ読み込みを処理
+         * @class ExcelImporter
+         */
+        class ExcelImporter {
+            constructor(textareaId, notificationManager) {
+                this.textarea = document.getElementById(textareaId);
+                this.wrapper = document.getElementById(textareaId + 'Wrapper');
+                this.dropHint = document.getElementById('dropHint');
+                this.notificationManager = notificationManager;
+
+                // フィールドマッピング定義（Excel列名 → 生データキー名）
+                this.fieldMapping = {
+                    '物品名': '仕様',
+                    '型番': '型番',
+                    '購買先': '購買先',
+                    '年間使用数': '年間使用数',
+                    '在庫数': '在庫数',
+                    '前回の注文単価': '前回の注文単価',
+                    '前回の注文加工費': '前回注文加工費',
+                    '科目': '科目',
+                    '部材CODE': '部材CODE',
+                    '単価': '単価',
+                    '加工費': '加工費'
+                };
+
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                if (!this.textarea || !this.wrapper) {
+                    console.warn('ExcelImporter: テキストエリアまたはラッパーが見つかりません');
+                    return;
+                }
+
+                // ドラッグオーバー時
+                this.wrapper.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.wrapper.classList.add('drag-over');
+                    if (this.dropHint) this.dropHint.style.display = 'block';
+                });
+
+                // ドラッグ離脱時
+                this.wrapper.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.wrapper.classList.remove('drag-over');
+                    if (this.dropHint) this.dropHint.style.display = 'none';
+                });
+
+                // ドロップ時
+                this.wrapper.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.wrapper.classList.remove('drag-over');
+                    if (this.dropHint) this.dropHint.style.display = 'none';
+
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.handleFile(files[0]);
+                    }
+                });
+
+                console.log('📁 Excelドラッグ＆ドロップ機能が有効化されました');
+            }
+
+            handleFile(file) {
+                const validExtensions = ['.xlsx', '.xls'];
+                const fileName = file.name.toLowerCase();
+                const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
+
+                if (!isValidFile) {
+                    this.notificationManager.showError('Excelファイル(.xlsx/.xls)のみ対応しています');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        // 全シートを読み込み
+                        const allSheetData = [];
+                        const sheetCount = workbook.SheetNames.length;
+
+                        for (const sheetName of workbook.SheetNames) {
+                            const worksheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                            // 空のシートはスキップ
+                            if (!jsonData || jsonData.length < 2) {
+                                console.log(`📄 シート「${sheetName}」はスキップ（データなし）`);
+                                continue;
+                            }
+
+                            const rawDataText = this.convertToRawData(jsonData);
+                            if (rawDataText) {
+                                allSheetData.push({
+                                    sheetName: sheetName,
+                                    data: rawDataText
+                                });
+                                console.log(`📄 シート「${sheetName}」を読み込みました`);
+                            }
+                        }
+
+                        if (allSheetData.length > 0) {
+                            // 各シートのデータを空行で区切って結合
+                            const combinedData = allSheetData.map(sheet => sheet.data).join('\n\n');
+                            this.textarea.value = combinedData;
+
+                            const message = allSheetData.length === 1
+                                ? `Excelファイル「${file.name}」を読み込みました（1シート）`
+                                : `Excelファイル「${file.name}」を読み込みました（${allSheetData.length}シート）`;
+                            this.notificationManager.showSuccess(message);
+                            console.log(`📊 Excel読み込み完了: ${file.name} (${allSheetData.length}/${sheetCount}シート)`);
+
+                            // 相見積もりデータを抽出・表示（1シート目から）
+                            const firstSheetName = workbook.SheetNames[0];
+                            const firstWorksheet = workbook.Sheets[firstSheetName];
+                            const firstSheetJson = XLSX.utils.sheet_to_json(firstWorksheet, { header: 1 });
+                            const quotationData = this.extractQuotationData(firstSheetJson);
+                            if (quotationData) {
+                                this.displayQuotationResult(quotationData);
+                            } else {
+                                this.hideQuotationResult();
+                            }
+                        } else {
+                            this.notificationManager.showError('データの変換に失敗しました。Excelの形式を確認してください。');
+                            this.hideQuotationResult();
+                        }
+                    } catch (error) {
+                        console.error('Excel読み込みエラー:', error);
+                        this.notificationManager.showError('Excelファイルの読み込みに失敗しました: ' + error.message);
+                    }
+                };
+
+                reader.onerror = () => {
+                    this.notificationManager.showError('ファイルの読み込みに失敗しました');
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
+
+            convertToRawData(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    return null;
+                }
+
+                // Excelの構造を解析（添付画像の形式に基づく）
+                // 列Aにラベル、列Bに値という形式
+                const dataMap = {};
+
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row && row.length >= 2) {
+                        const key = String(row[0] || '').trim();
+                        const value = row[1];
+                        if (key) {
+                            dataMap[key] = value !== undefined && value !== null ? String(value) : '';
+                        }
+                    }
+                }
+
+                // 生データ形式のテキストを生成
+                const outputLines = [];
+
+                // 必要なフィールドを順番に出力
+                const outputFields = [
+                    { excelKey: '物品名', outputKey: '仕様' },
+                    { excelKey: '型番', outputKey: '型番' },
+                    { excelKey: '購買先', outputKey: '購買先' },
+                    { excelKey: '年間使用数', outputKey: '年間使用数' },
+                    { excelKey: '在庫数', outputKey: '在庫数' },
+                    { excelKey: '前回の注文単価', outputKey: '前回の注文単価' },
+                    { excelKey: '前回の注文加工費', outputKey: '前回注文加工費' },
+                    { excelKey: '科目', outputKey: '科目' }
+                ];
+
+                for (const field of outputFields) {
+                    let value = dataMap[field.excelKey];
+                    if (value !== undefined && value !== '') {
+                        // 価格から円記号を除去し、数値のみに
+                        if (field.excelKey.includes('単価') || field.excelKey.includes('加工費')) {
+                            value = value.replace(/[¥￥,]/g, '');
+                        }
+                        outputLines.push(`${field.outputKey}：${value}`);
+                    }
+                }
+
+                // 最低限のデータがあるか確認
+                if (outputLines.length < 2) {
+                    // フォールバック：ヘッダー行+データ行の形式を試す
+                    return this.convertTableFormat(jsonData);
+                }
+
+                return outputLines.join('\n');
+            }
+
+            // テーブル形式（ヘッダー行+データ行）の場合の変換
+            convertTableFormat(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    return null;
+                }
+
+                const headers = jsonData[0];
+                const results = [];
+
+                // 2行目以降のデータを処理
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (!row || row.every(cell => cell === null || cell === undefined || cell === '')) {
+                        continue;
+                    }
+
+                    const outputLines = [];
+
+                    for (let j = 0; j < headers.length; j++) {
+                        const header = String(headers[j] || '').trim();
+                        let value = row[j];
+
+                        if (!header || value === undefined || value === null || value === '') {
+                            continue;
+                        }
+
+                        value = String(value);
+
+                        // ヘッダーをマッピング
+                        const mappedKey = this.fieldMapping[header] || header;
+
+                        // 価格から円記号を除去
+                        if (header.includes('単価') || header.includes('加工費')) {
+                            value = value.replace(/[¥￥,]/g, '');
+                        }
+
+                        outputLines.push(`${mappedKey}：${value}`);
+                    }
+
+                    if (outputLines.length > 0) {
+                        results.push(outputLines.join('\n'));
+                    }
+                }
+
+                return results.join('\n\n');
+            }
+
+            // 相見積もりデータを抽出
+            extractQuotationData(jsonData) {
+                if (!jsonData || jsonData.length < 2) {
+                    return null;
+                }
+
+                const dataMap = {};
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (row && row.length >= 2) {
+                        const key = String(row[0] || '').trim();
+                        const value = row[1];
+                        if (key) {
+                            dataMap[key] = value !== undefined && value !== null ? String(value) : '';
+                        }
+                    }
+                }
+
+                // 物品名を取得
+                const itemName = dataMap['物品名'] || dataMap['仕様'] || '';
+                const modelNumber = dataMap['型番'] || '';
+                const previousUnitPrice = dataMap['前回の注文単価'] || '';
+
+                // 購買先データを抽出（購買先1、購買先2、購買先3）
+                const quotations = [];
+
+                for (let i = 1; i <= 5; i++) {
+                    const supplierKey = `購買先${i}`;
+                    const supplierName = dataMap[supplierKey];
+
+                    if (supplierName) {
+                        const quotation = {
+                            supplier: supplierName,
+                            unitPrice: this.parsePrice(dataMap[`単価_${i}`] || dataMap['単価'] || ''),
+                            quantity: parseInt(dataMap[`発注数_${i}`] || dataMap['発注数'] || '0', 10) || 0,
+                            shippingFee: this.parsePrice(dataMap['送料'] || '0'),
+                            total: this.parsePrice(dataMap[`合計_${i}`] || ''),
+                            unitPriceWithShipping: this.parsePrice(dataMap['送料込単価'] || ''),
+                            remarks: dataMap['備考'] || '',
+                            url: dataMap['URL'] || ''
+                        };
+
+                        // 行データから直接抽出を試みる（テーブル形式の場合）
+                        quotations.push(quotation);
+                    }
+                }
+
+                // テーブル形式で購買先データを探す
+                if (quotations.length === 0) {
+                    quotations.push(...this.extractQuotationFromTable(jsonData));
+                }
+
+                if (quotations.length === 0) {
+                    return null;
+                }
+
+                return {
+                    itemName: itemName,
+                    modelNumber: modelNumber,
+                    previousUnitPrice: previousUnitPrice,
+                    quotations: quotations
+                };
+            }
+
+            // テーブル形式から相見積もりデータを抽出
+            extractQuotationFromTable(jsonData) {
+                const quotations = [];
+
+                // 購買先の行を探す
+                for (let i = 0; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    if (!row || row.length < 2) continue;
+
+                    const firstCell = String(row[0] || '').trim();
+
+                    // 購買先1、購買先2、購買先3 のパターンを探す
+                    if (firstCell.match(/^購買先[0-9]*$/)) {
+                        // 次の行にヘッダー、その次の行にデータがある想定
+                        const headerRow = jsonData[i];
+                        const dataRow = jsonData[i + 1];
+
+                        if (dataRow && dataRow.length >= 2) {
+                            const supplierName = String(dataRow[0] || '').trim();
+                            if (supplierName) {
+                                // ヘッダーとデータのマッピング
+                                const headers = headerRow;
+                                const values = dataRow;
+
+                                const quotation = {
+                                    supplier: supplierName,
+                                    unitPrice: 0,
+                                    quantity: 0,
+                                    shippingFee: 0,
+                                    total: 0,
+                                    unitPriceWithShipping: 0,
+                                    remarks: '',
+                                    url: ''
+                                };
+
+                                for (let j = 1; j < headers.length && j < values.length; j++) {
+                                    const header = String(headers[j] || '').trim();
+                                    const value = values[j];
+
+                                    if (header.includes('単価') && !header.includes('送料込')) {
+                                        quotation.unitPrice = this.parsePrice(value);
+                                    } else if (header.includes('発注数')) {
+                                        quotation.quantity = parseInt(value, 10) || 0;
+                                    } else if (header.includes('送料')) {
+                                        quotation.shippingFee = this.parsePrice(value);
+                                    } else if (header.includes('合計')) {
+                                        quotation.total = this.parsePrice(value);
+                                    } else if (header.includes('送料込単価')) {
+                                        quotation.unitPriceWithShipping = this.parsePrice(value);
+                                    } else if (header.includes('備考')) {
+                                        quotation.remarks = String(value || '');
+                                    } else if (header.includes('URL')) {
+                                        quotation.url = String(value || '');
+                                    }
+                                }
+
+                                quotations.push(quotation);
+                            }
+                        }
+                    }
+                }
+
+                return quotations;
+            }
+
+            // 価格文字列をパース
+            parsePrice(value) {
+                if (value === undefined || value === null || value === '') return 0;
+                const str = String(value).replace(/[¥￥,\s]/g, '');
+                return parseFloat(str) || 0;
+            }
+
+            // 相見積もり結果を表示
+            displayQuotationResult(quotationData) {
+                const resultArea = document.getElementById('quotationResultArea');
+                const itemNameEl = document.getElementById('quotationItemName');
+                const tableBody = document.getElementById('quotationTableBody');
+                const recommendationEl = document.getElementById('quotationRecommendation');
+
+                if (!resultArea || !quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
+                    if (resultArea) resultArea.classList.add('hidden');
+                    return;
+                }
+
+                // 物品名を表示
+                const displayName = quotationData.itemName || quotationData.modelNumber || '';
+                itemNameEl.textContent = displayName ? `- ${displayName}` : '';
+
+                // テーブルをクリア
+                tableBody.innerHTML = '';
+
+                // 最安値を計算
+                let minPrice = Infinity;
+                let minSupplier = '';
+
+                quotationData.quotations.forEach(q => {
+                    const effectivePrice = q.unitPriceWithShipping || q.unitPrice;
+                    if (effectivePrice > 0 && effectivePrice < minPrice) {
+                        minPrice = effectivePrice;
+                        minSupplier = q.supplier;
+                    }
+                });
+
+                // 各購買先の行を追加
+                quotationData.quotations.forEach(q => {
+                    const effectivePrice = q.unitPriceWithShipping || q.unitPrice;
+                    const isLowest = effectivePrice === minPrice && minPrice !== Infinity;
+                    const rowClass = isLowest ? 'bg-green-50' : '';
+
+                    const row = document.createElement('tr');
+                    row.className = `${rowClass} border-b hover:bg-gray-50`;
+
+                    row.innerHTML = `
+                        <td class="px-3 py-2 font-medium ${isLowest ? 'text-green-700' : ''}">${q.supplier}${isLowest ? ' ⭐' : ''}</td>
+                        <td class="px-3 py-2 text-right">¥${q.unitPrice.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right">${q.quantity}</td>
+                        <td class="px-3 py-2 text-right">¥${q.shippingFee.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right">¥${q.total.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right font-medium ${isLowest ? 'text-green-700' : ''}">¥${(q.unitPriceWithShipping || q.unitPrice).toLocaleString()}</td>
+                        <td class="px-3 py-2 text-gray-600 text-xs">${q.remarks}</td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+
+                // 推奨を表示
+                if (minSupplier && minPrice !== Infinity) {
+                    recommendationEl.innerHTML = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
+
+                    // 前回注文単価との比較
+                    if (quotationData.previousUnitPrice) {
+                        const prevPrice = this.parsePrice(quotationData.previousUnitPrice);
+                        if (prevPrice > 0) {
+                            const diff = minPrice - prevPrice;
+                            const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
+                            if (diff < 0) {
+                                recommendationEl.innerHTML += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
+                            } else if (diff > 0) {
+                                recommendationEl.innerHTML += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
+                            }
+                        }
+                    }
+                } else {
+                    recommendationEl.textContent = '';
+                }
+
+                // 表示
+                resultArea.classList.remove('hidden');
+                console.log('📊 相見積もり結果を表示:', quotationData);
+            }
+
+            // 相見積もり結果を非表示
+            hideQuotationResult() {
+                const resultArea = document.getElementById('quotationResultArea');
+                if (resultArea) {
+                    resultArea.classList.add('hidden');
+                }
+            }
+        }
+
         /**
          * バージョン管理クラス
          * アプリケーションのバージョン情報と更新履歴を管理
@@ -2871,6 +3580,113 @@ ${priceReason}`;
                             '🔧 保守性の向上: コードの可読性と拡張性の改善',
                             '📖 ドキュメント整備: コード内コメントとバージョン情報の充実',
                             '⚡ 全クラスへのJSDoc形式コメント追加'
+                        ]
+                    },
+                    {
+                        version: '2.6.2',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '📊 相見積もり結果表示機能',
+                        changes: [
+                            'Excelから相見積もりデータを自動抽出',
+                            '購買先ごとの単価・送料・合計を一覧表示',
+                            '最安値の購買先を自動判定・ハイライト表示',
+                            '前回注文単価との比較表示'
+                        ]
+                    },
+                    {
+                        version: '2.6.1',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '📄 Excel複数シート対応',
+                        changes: [
+                            'Excelファイルの複数シート読み込みに対応',
+                            '全シートのデータを自動的に結合して生データエリアに入力',
+                            '空のシートは自動スキップ',
+                            '読み込んだシート数を通知メッセージに表示'
+                        ]
+                    },
+                    {
+                        version: '2.6.0',
+                        date: '2025年1月',
+                        type: 'minor',
+                        title: '📁 Excelインポート機能',
+                        changes: [
+                            'Excelファイル(.xlsx/.xls)のドラッグ＆ドロップ読み込み機能を追加',
+                            '生データエリアに直接Excelファイルをドロップ可能',
+                            'SheetJS(xlsx)ライブラリを使用したクライアントサイド処理',
+                            'データは外部送信されず、ブラウザ内でのみ処理（セキュリティ確保）'
+                        ]
+                    },
+                    {
+                        version: '2.5.4',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '🎯 仕訳科目ドロップダウンリスト化',
+                        changes: [
+                            '仕訳科目をドロップダウンリスト形式に変更',
+                            '選択肢を追加: 原材料、仕掛品、貯蔵品、研究開発費、技術・製造',
+                            'ユーザビリティ向上: 入力ミスを防止し、入力効率を向上'
+                        ]
+                    },
+                    {
+                        version: '2.5.3',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '⚙️ デフォルト値設定と加工費比較自動化',
+                        changes: [
+                            'ZAICO型番のデフォルト値設定: 生データから自動入力',
+                            'ZAICO科目のデフォルト値設定: 生データから自動入力',
+                            '加工費比較自動チェック: 科目が「仕掛品」の場合に自動的にチェック',
+                            'リアルタイム監視: ZAICO科目が「仕掛品」に変更された場合も自動チェック',
+                            'handleSubjectChangeメソッドを追加: 科目変更時の処理を実装',
+                            'ユーザビリティ向上: 説明テキストを追加して自動チェックの理由を明示'
+                        ]
+                    },
+                    {
+                        version: '2.5.2',
+                        date: '2024年12月',
+                        type: 'minor',
+                        title: '📋 科目チェック機能実装',
+                        changes: [
+                            '科目フィールドのサポート追加: ZAICO科目と仕訳科目の一致確認',
+                            'UI拡張: 科目入力フィールドと特別事情チェックボックスを追加',
+                            'データパース強化: 生データと申請データの科目自動解析',
+                            '検証機能追加: validateSubject、generateSubjectReasonメソッドを実装',
+                            'リアルタイム検証: 科目フィールドの自動監視と状態更新',
+                            'フォーマット出力: 科目情報を含む出力テキスト生成'
+                        ]
+                    },
+                    {
+                        version: '2.5.1',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '🔢 型番チェック出力改善',
+                        changes: [
+                            '型番チェックのフォーマット済みテキストをデフォルト「型番の一致確認」に変更',
+                            '「仕様一致確認済み」チェック時のみ「仕様の一致確認」を表示',
+                            'generateModelReasonメソッドのロジックを改善'
+                        ]
+                    },
+                    {
+                        version: '2.5.0',
+                        date: '2024年12月',
+                        type: 'minor',
+                        title: '📊 単価表示・注文数検証機能拡張',
+                        changes: [
+                            '📋 申請単価と計算単価の不一致時に注文単価を表示（例：今回単価：¥21.60　←（注文単価：¥22.32））',
+                            '✅ 注文数検証に「注文数約1年分」チェックボックスを追加',
+                            '💬 チェックボックスON時の出力メッセージ：「注文数は約1年分のためOK」',
+                            '🔧 extractFormData、performValidationChecks、generateOrderReasonメソッドを更新'
+                        ]
+                    },
+                    {
+                        version: '2.4.4',
+                        date: '2024年12月',
+                        type: 'patch',
+                        title: '🔄 バージョン更新',
+                        changes: [
+                            '📌 バージョン番号を v2.4.4 に更新'
                         ]
                     },
                     {
@@ -3197,9 +4013,13 @@ ${priceReason}`;
          */
         document.addEventListener('DOMContentLoaded', () => {
             const app = new DataFormatterApp();
-            
+
             // グローバルにアプリインスタンスを設定（デバッグ用）
             window.DataFormatterApp = app;
+
+            // Excelインポート機能を初期化
+            const excelImporter = new ExcelImporter('inputData', app.notificationManager);
+            window.ExcelImporter = excelImporter;
             
             // キーボードショートカット
             document.addEventListener('keydown', (e) => {
@@ -3216,8 +4036,6 @@ ${priceReason}`;
             // ページ読み込み完了をコンソールに表示
             console.group(`🎉 SPAS v${app.version} - Smart Procurement Analysis System`);
             console.log('🚀 システム初期化完了：次世代調達分析プラットフォーム');
-            console.log('🔄 v3.0.0 新機能: コード構造の最適化とリファクタリング');
-            console.log('📋 バージョン管理強化: セマンティックバージョニングの厳格な運用');
             console.log('⚡ リアルタイム検証エンジンが稼働中');
             console.log('✏️ 基本情報編集機能が利用可能');
             console.log('📊 データ品質管理システムが稼働中');
@@ -3226,8 +4044,14 @@ ${priceReason}`;
             console.log('📐 図番チェック機能が稼働中');
             console.log('🔧 最適化済み加工費分析機能が実装済み');
             console.log('💡 インテリジェント警告システムが稼働中');
+            console.log('⚡ 申請単価連携による簡略化操作システム');
+            console.log('🔄 自動キーマッピング機能が稼働中');
+            console.log('📋 条件分岐型出力表示システム');
+            console.log('⌨️ ブラウザ標準操作を優先：カスタムショートカット削除');
+            console.log('📁 Excelインポート機能: 生データエリアにファイルをドラッグ＆ドロップ');
             console.log('📱 バージョン情報: 画面右上のボタンから表示可能');
             console.log('🔧 開発者向け: window.DataFormatterApp でアプリインスタンスにアクセス可能');
+            console.log('📋 完全仕様書・技術資料を参照');
             console.groupEnd();
         });
     </script>

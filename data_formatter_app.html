@@ -78,33 +78,6 @@
                             ></textarea>
                             <div class="drop-hint" id="dropHint" style="display: none;">Excelファイルをドロップ</div>
                         </div>
-                        <!-- 相見積もり結果表示エリア -->
-                        <div id="quotationResultArea" class="mt-4 hidden">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
-                                    <span class="mr-2">📊</span>相見積もり結果
-                                    <span id="quotationItemName" class="ml-2 text-blue-600 font-normal"></span>
-                                </h3>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
-                                        <thead>
-                                            <tr class="bg-blue-100">
-                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
-                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="quotationTableBody">
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div id="quotationRecommendation" class="mt-3 text-sm text-green-700 font-medium"></div>
-                            </div>
-                        </div>
                     </div>
 
                     <div>
@@ -1474,7 +1447,7 @@
                         
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             ${this.generateBasicInfoSection(basicInfo)}
-                            ${this.generateValidationInputSection(application, basicInfo)}
+                            ${this.generateValidationInputSection(application, basicInfo, index)}
                         </div>
                         
                         <div class="validation-result mt-6 p-4 rounded-lg bg-white border" style="display: none;"></div>
@@ -1683,13 +1656,13 @@
                 `;
             }
             
-            generateValidationInputSection(application, basicInfo) {
+            generateValidationInputSection(application, basicInfo, index = 0) {
                 return `
                     <div class="space-y-4">
                         <h5 class="font-semibold text-gray-700 border-b pb-2">検証データ入力</h5>
 
                         ${this.generateOrderQuantitySection(application)}
-                        ${this.generatePriceSection(application, basicInfo)}
+                        ${this.generatePriceSection(application, basicInfo, index)}
                         ${this.generateModelSection(basicInfo)}
                     </div>
                 `;
@@ -1726,7 +1699,7 @@
                 `;
             }
             
-            generatePriceSection(application, basicInfo = {}) {
+            generatePriceSection(application, basicInfo = {}, index = 0) {
                 // 科目が「仕掛品」の場合は加工費比較をデフォルトでチェック
                 const subject = basicInfo['科目'] || '';
                 const isProcessingFeeChecked = subject === '仕掛品';
@@ -1820,6 +1793,34 @@
                                                 rows="2"
                                                 placeholder="申請単価が前回注文加工費より上昇した理由を詳しく記載してください"
                                             ></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- 相見積もり結果表示エリア -->
+                                    <div id="quotationResultArea-${index}" class="mt-4 hidden">
+                                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                                <span class="mr-2">📊</span>相見積もり結果
+                                                <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
+                                            </h3>
+                                            <div class="overflow-x-auto">
+                                                <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                                    <thead>
+                                                        <tr class="bg-blue-100">
+                                                            <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
+                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
+                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                            <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="quotationTableBody">
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -3467,11 +3468,11 @@ ${priceReason}`;
             }
 
             // 相見積もり結果を表示
-            displayQuotationResult(quotationData) {
-                const resultArea = document.getElementById('quotationResultArea');
-                const itemNameEl = document.getElementById('quotationItemName');
-                const tableBody = document.getElementById('quotationTableBody');
-                const recommendationEl = document.getElementById('quotationRecommendation');
+            displayQuotationResult(quotationData, index = 0) {
+                const resultArea = document.getElementById(`quotationResultArea-${index}`);
+                const itemNameEl = resultArea ? resultArea.querySelector('.quotationItemName') : null;
+                const tableBody = resultArea ? resultArea.querySelector('.quotationTableBody') : null;
+                const recommendationEl = resultArea ? resultArea.querySelector('.quotationRecommendation') : null;
 
                 if (!resultArea || !quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
                     if (resultArea) resultArea.classList.add('hidden');
@@ -3480,10 +3481,14 @@ ${priceReason}`;
 
                 // 物品名を表示
                 const displayName = quotationData.itemName || quotationData.modelNumber || '';
-                itemNameEl.textContent = displayName ? `- ${displayName}` : '';
+                if (itemNameEl) {
+                    itemNameEl.textContent = displayName ? `- ${displayName}` : '';
+                }
 
                 // テーブルをクリア
-                tableBody.innerHTML = '';
+                if (tableBody) {
+                    tableBody.innerHTML = '';
+                }
 
                 // 最安値を計算
                 let minPrice = Infinity;
@@ -3520,24 +3525,26 @@ ${priceReason}`;
                 });
 
                 // 推奨を表示
-                if (minSupplier && minPrice !== Infinity) {
-                    recommendationEl.innerHTML = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
+                if (recommendationEl) {
+                    if (minSupplier && minPrice !== Infinity) {
+                        recommendationEl.innerHTML = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
 
-                    // 前回注文単価との比較
-                    if (quotationData.previousUnitPrice) {
-                        const prevPrice = this.parsePrice(quotationData.previousUnitPrice);
-                        if (prevPrice > 0) {
-                            const diff = minPrice - prevPrice;
-                            const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
-                            if (diff < 0) {
-                                recommendationEl.innerHTML += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
-                            } else if (diff > 0) {
-                                recommendationEl.innerHTML += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
+                        // 前回注文単価との比較
+                        if (quotationData.previousUnitPrice) {
+                            const prevPrice = this.parsePrice(quotationData.previousUnitPrice);
+                            if (prevPrice > 0) {
+                                const diff = minPrice - prevPrice;
+                                const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
+                                if (diff < 0) {
+                                    recommendationEl.innerHTML += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
+                                } else if (diff > 0) {
+                                    recommendationEl.innerHTML += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
+                                }
                             }
                         }
+                    } else {
+                        recommendationEl.textContent = '';
                     }
-                } else {
-                    recommendationEl.textContent = '';
                 }
 
                 // 表示
@@ -3547,9 +3554,16 @@ ${priceReason}`;
 
             // 相見積もり結果を非表示
             hideQuotationResult() {
-                const resultArea = document.getElementById('quotationResultArea');
-                if (resultArea) {
-                    resultArea.classList.add('hidden');
+                // 全ての相見積もり結果エリアを非表示にする
+                let index = 0;
+                while (true) {
+                    const resultArea = document.getElementById(`quotationResultArea-${index}`);
+                    if (resultArea) {
+                        resultArea.classList.add('hidden');
+                        index++;
+                    } else {
+                        break;
+                    }
                 }
             }
         }

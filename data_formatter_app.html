@@ -1449,7 +1449,35 @@
                             ${this.generateBasicInfoSection(basicInfo)}
                             ${this.generateValidationInputSection(application, basicInfo, index)}
                         </div>
-                        
+
+                        <!-- 相見積もり結果表示エリア -->
+                        <div id="quotationResultArea-${index}" class="mt-4">
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                    <span class="mr-2">📊</span>相見積もり結果
+                                    <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
+                                </h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                        <thead>
+                                            <tr class="bg-blue-100">
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
+                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="quotationTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
+                            </div>
+                        </div>
+
                         <div class="validation-result mt-6 p-4 rounded-lg bg-white border" style="display: none;"></div>
                     </div>
                 `;
@@ -1793,34 +1821,6 @@
                                                 rows="2"
                                                 placeholder="申請単価が前回注文加工費より上昇した理由を詳しく記載してください"
                                             ></textarea>
-                                        </div>
-                                    </div>
-
-                                    <!-- 相見積もり結果表示エリア -->
-                                    <div id="quotationResultArea-${index}" class="mt-4 hidden">
-                                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                            <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
-                                                <span class="mr-2">📊</span>相見積もり結果
-                                                <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
-                                            </h3>
-                                            <div class="overflow-x-auto">
-                                                <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
-                                                    <thead>
-                                                        <tr class="bg-blue-100">
-                                                            <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
-                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
-                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
-                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
-                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
-                                                            <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
-                                                            <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody class="quotationTableBody">
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -3474,8 +3474,21 @@ ${priceReason}`;
                 const tableBody = resultArea ? resultArea.querySelector('.quotationTableBody') : null;
                 const recommendationEl = resultArea ? resultArea.querySelector('.quotationRecommendation') : null;
 
-                if (!resultArea || !quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
-                    if (resultArea) resultArea.classList.add('hidden');
+                if (!resultArea) {
+                    return;
+                }
+
+                // データがない場合はテーブルをクリアするだけ
+                if (!quotationData || !quotationData.quotations || quotationData.quotations.length === 0) {
+                    if (tableBody) {
+                        tableBody.innerHTML = '';
+                    }
+                    if (recommendationEl) {
+                        recommendationEl.textContent = '';
+                    }
+                    if (itemNameEl) {
+                        itemNameEl.textContent = '';
+                    }
                     return;
                 }
 
@@ -3547,19 +3560,22 @@ ${priceReason}`;
                     }
                 }
 
-                // 表示
-                resultArea.classList.remove('hidden');
                 console.log('📊 相見積もり結果を表示:', quotationData);
             }
 
-            // 相見積もり結果を非表示
+            // 相見積もり結果をクリア
             hideQuotationResult() {
-                // 全ての相見積もり結果エリアを非表示にする
+                // 全ての相見積もり結果エリアをクリアする
                 let index = 0;
                 while (true) {
                     const resultArea = document.getElementById(`quotationResultArea-${index}`);
                     if (resultArea) {
-                        resultArea.classList.add('hidden');
+                        const tableBody = resultArea.querySelector('.quotationTableBody');
+                        const recommendationEl = resultArea.querySelector('.quotationRecommendation');
+                        const itemNameEl = resultArea.querySelector('.quotationItemName');
+                        if (tableBody) tableBody.innerHTML = '';
+                        if (recommendationEl) recommendationEl.textContent = '';
+                        if (itemNameEl) itemNameEl.textContent = '';
                         index++;
                     } else {
                         break;

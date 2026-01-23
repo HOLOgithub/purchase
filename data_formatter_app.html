@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.1.0</span>
+                        <span id="appVersion">v3.1.1</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -166,29 +166,41 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div class="flex items-center mb-2">
                             <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
-                            <span class="font-bold text-green-700">v3.1.0</span>
-                            <span class="text-gray-600 ml-2">- 2025年1月（相見積もりUI改善版）</span>
+                            <span class="font-bold text-green-700">v3.1.1</span>
+                            <span class="text-gray-600 ml-2">- 2025年1月（相見積もり表示修正版）</span>
                         </div>
-                        <h4 class="font-semibold text-gray-800 mb-2">📊 相見積もり結果表示の改善</h4>
+                        <h4 class="font-semibold text-gray-800 mb-2">🐛 相見積もり表示の修正</h4>
                         <ul class="text-sm text-gray-700 space-y-1">
-                            <li>• <strong>レイアウト最適化:</strong> 相見積もり結果を基本情報の下、左半分に配置</li>
-                            <li>• <strong>比較項目の最適化:</strong> 購買先、単価、送料、送料込単価、URLの5項目に絞り込み</li>
-                            <li>• <strong>URL表示機能:</strong> クリック可能なリンクとして表示（新しいタブで開く）</li>
-                            <li>• <strong>UI/UX向上:</strong> より見やすく、使いやすいレイアウトに改善</li>
-                            <li>• <strong>情報の集約:</strong> 関連情報を視覚的にグループ化</li>
+                            <li>• <strong>表示位置の修正:</strong> 基本情報の次、検証データの前に配置（左半分）</li>
+                            <li>• <strong>データ抽出ロジックの改善:</strong> テーブル形式のデータに完全対応</li>
+                            <li>• <strong>複数プロジェクト対応:</strong> すべてのプロジェクトに相見積もり結果を表示</li>
+                            <li>• <strong>デバッグログの追加:</strong> データ抽出と表示のデバッグを容易化</li>
+                            <li>• <strong>型番認識の改善:</strong> 部材CODEも型番として認識</li>
                         </ul>
 
                         <div class="mt-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
                             <div class="flex items-center">
-                                <span class="text-green-600 mr-2">📊</span>
-                                <strong class="text-green-800">マイナーアップデート</strong>
-                                <span class="text-green-700 ml-2">= UI/UX改善と機能強化</span>
+                                <span class="text-green-600 mr-2">🐛</span>
+                                <strong class="text-green-800">パッチアップデート</strong>
+                                <span class="text-green-700 ml-2">= バグ修正と改善</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Version History -->
                     <div class="space-y-3">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <span class="font-bold text-gray-700">v3.1.0</span>
+                                <span class="text-gray-600 ml-2">- 2025年1月（相見積もりUI改善版）</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">📊 相見積もり結果表示の改善</h4>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li>• レイアウト最適化と比較項目の最適化</li>
+                                <li>• URL表示機能の追加</li>
+                                <li>• UI/UX向上</li>
+                            </ul>
+                        </div>
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center mb-2">
                                 <span class="font-bold text-gray-700">v3.0.0</span>
@@ -408,14 +420,14 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.1.0
+         * Version: 3.1.1
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.1.0):
-         * - 相見積もり結果のレイアウト改善（左半分に配置）
-         * - 比較項目の最適化（購買先、単価、送料、送料込単価、URL）
-         * - URL表示機能の追加（クリック可能なリンク）
-         * - UI/UXの向上
+         * 主要更新内容 (v3.1.1):
+         * - 相見積もり結果の表示位置修正（基本情報の次、検証データの前）
+         * - データ抽出ロジックの改善（テーブル形式に完全対応）
+         * - 複数プロジェクトへの相見積もり結果表示対応
+         * - デバッグログの追加
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -433,7 +445,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.0';
+                this.version = '3.1.1';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -1458,36 +1470,37 @@
                         </div>
                         
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            ${this.generateBasicInfoSection(basicInfo)}
-                            ${this.generateValidationInputSection(application, basicInfo, index)}
-                        </div>
+                            <div class="space-y-4">
+                                ${this.generateBasicInfoSection(basicInfo)}
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
-                            <!-- 相見積もり結果表示エリア -->
-                            <div id="quotationResultArea-${index}">
-                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
-                                        <span class="mr-2">📊</span>相見積もり結果
-                                        <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
-                                    </h3>
-                                    <div class="overflow-x-auto">
-                                        <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
-                                            <thead>
-                                                <tr class="bg-blue-100">
-                                                    <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
-                                                    <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
-                                                    <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
-                                                    <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
-                                                    <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">URL</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="quotationTableBody">
-                                            </tbody>
-                                        </table>
+                                <!-- 相見積もり結果表示エリア -->
+                                <div id="quotationResultArea-${index}">
+                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                            <span class="mr-2">📊</span>相見積もり結果
+                                            <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
+                                        </h3>
+                                        <div class="overflow-x-auto">
+                                            <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                                <thead>
+                                                    <tr class="bg-blue-100">
+                                                        <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                        <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                        <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                        <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                        <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">URL</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="quotationTableBody">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
                                     </div>
-                                    <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
                                 </div>
                             </div>
+
+                            ${this.generateValidationInputSection(application, basicInfo, index)}
                         </div>
 
                         <div class="validation-result mt-6 p-4 rounded-lg bg-white border" style="display: none;"></div>
@@ -3220,7 +3233,11 @@ ${priceReason}`;
                             const firstSheetJson = XLSX.utils.sheet_to_json(firstWorksheet, { header: 1 });
                             const quotationData = this.extractQuotationData(firstSheetJson);
                             if (quotationData) {
-                                this.displayQuotationResult(quotationData);
+                                // すべてのプロジェクトに対して相見積もり結果を表示
+                                for (let i = 0; i < this.projects.length; i++) {
+                                    this.displayQuotationResult(quotationData, i);
+                                }
+                                console.log(`📊 相見積もり結果を${this.projects.length}件のプロジェクトに表示しました`);
                             } else {
                                 this.hideQuotationResult();
                             }
@@ -3346,6 +3363,7 @@ ${priceReason}`;
             // 相見積もりデータを抽出
             extractQuotationData(jsonData) {
                 if (!jsonData || jsonData.length < 2) {
+                    console.log('📊 相見積もりデータ抽出: データが不足しています');
                     return null;
                 }
 
@@ -3363,42 +3381,20 @@ ${priceReason}`;
 
                 // 物品名を取得
                 const itemName = dataMap['物品名'] || dataMap['仕様'] || '';
-                const modelNumber = dataMap['型番'] || '';
-                const previousUnitPrice = dataMap['前回の注文単価'] || '';
+                const modelNumber = dataMap['型番'] || dataMap['部材CODE'] || '';
+                const previousUnitPrice = dataMap['前回の注文単価'] || dataMap['前回注文単価'] || '';
 
-                // 購買先データを抽出（購買先1、購買先2、購買先3）
-                const quotations = [];
+                console.log('📊 相見積もり基本情報:', { itemName, modelNumber, previousUnitPrice });
 
-                for (let i = 1; i <= 5; i++) {
-                    const supplierKey = `購買先${i}`;
-                    const supplierName = dataMap[supplierKey];
-
-                    if (supplierName) {
-                        const quotation = {
-                            supplier: supplierName,
-                            unitPrice: this.parsePrice(dataMap[`単価_${i}`] || dataMap['単価'] || ''),
-                            quantity: parseInt(dataMap[`発注数_${i}`] || dataMap['発注数'] || '0', 10) || 0,
-                            shippingFee: this.parsePrice(dataMap['送料'] || '0'),
-                            total: this.parsePrice(dataMap[`合計_${i}`] || ''),
-                            unitPriceWithShipping: this.parsePrice(dataMap['送料込単価'] || ''),
-                            remarks: dataMap['備考'] || '',
-                            url: dataMap['URL'] || ''
-                        };
-
-                        // 行データから直接抽出を試みる（テーブル形式の場合）
-                        quotations.push(quotation);
-                    }
-                }
-
-                // テーブル形式で購買先データを探す
-                if (quotations.length === 0) {
-                    quotations.push(...this.extractQuotationFromTable(jsonData));
-                }
+                // テーブル形式で購買先データを探す（優先）
+                const quotations = this.extractQuotationFromTable(jsonData);
 
                 if (quotations.length === 0) {
+                    console.log('📊 相見積もりデータ抽出: 購買先データが見つかりませんでした');
                     return null;
                 }
 
+                console.log(`📊 相見積もりデータ抽出完了: ${quotations.length}件の購買先`);
                 return {
                     itemName: itemName,
                     modelNumber: modelNumber,
@@ -3419,14 +3415,14 @@ ${priceReason}`;
                     const firstCell = String(row[0] || '').trim();
 
                     // 購買先1、購買先2、購買先3 のパターンを探す
-                    if (firstCell.match(/^購買先[0-9]*$/)) {
-                        // 次の行にヘッダー、その次の行にデータがある想定
+                    if (firstCell.match(/^購買先\d+$/)) {
+                        // 現在の行がヘッダー、次の行にデータがある想定
                         const headerRow = jsonData[i];
                         const dataRow = jsonData[i + 1];
 
                         if (dataRow && dataRow.length >= 2) {
                             const supplierName = String(dataRow[0] || '').trim();
-                            if (supplierName) {
+                            if (supplierName && !supplierName.match(/^購買先\d+$/)) {
                                 // ヘッダーとデータのマッピング
                                 const headers = headerRow;
                                 const values = dataRow;
@@ -3450,7 +3446,7 @@ ${priceReason}`;
                                         quotation.unitPrice = this.parsePrice(value);
                                     } else if (header.includes('発注数')) {
                                         quotation.quantity = parseInt(value, 10) || 0;
-                                    } else if (header.includes('送料')) {
+                                    } else if (header.includes('送料') && !header.includes('込')) {
                                         quotation.shippingFee = this.parsePrice(value);
                                     } else if (header.includes('合計')) {
                                         quotation.total = this.parsePrice(value);
@@ -3464,6 +3460,7 @@ ${priceReason}`;
                                 }
 
                                 quotations.push(quotation);
+                                console.log(`📊 購買先データ抽出: ${supplierName}`, quotation);
                             }
                         }
                     }
@@ -3572,7 +3569,7 @@ ${priceReason}`;
                     }
                 }
 
-                console.log('📊 相見積もり結果を表示:', quotationData);
+                console.log(`📊 相見積もり結果を表示 (プロジェクト${index}):`, quotationData);
             }
 
             // 相見積もり結果をクリア
@@ -3610,6 +3607,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.1',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '🐛 相見積もり表示の修正',
+                        changes: [
+                            '📐 表示位置の修正: 基本情報の次、検証データの前に配置（左半分）',
+                            '🔧 データ抽出ロジックの改善: テーブル形式のデータに完全対応',
+                            '📊 複数プロジェクト対応: すべてのプロジェクトに相見積もり結果を表示',
+                            '🐞 デバッグログの追加: データ抽出と表示のデバッグを容易化',
+                            '✨ 型番認識の改善: 部材CODEも型番として認識'
+                        ]
+                    },
                     {
                         version: '3.1.0',
                         date: '2025年1月',

@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.0.0</span>
+                        <span id="appVersion">v3.1.0</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -166,29 +166,41 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div class="flex items-center mb-2">
                             <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
-                            <span class="font-bold text-green-700">v3.0.0</span>
-                            <span class="text-gray-600 ml-2">- 2025年1月（コードリファクタリング版）</span>
+                            <span class="font-bold text-green-700">v3.1.0</span>
+                            <span class="text-gray-600 ml-2">- 2025年1月（相見積もりUI改善版）</span>
                         </div>
-                        <h4 class="font-semibold text-gray-800 mb-2">🔄 完全リファクタリング・コード品質向上</h4>
+                        <h4 class="font-semibold text-gray-800 mb-2">📊 相見積もり結果表示の改善</h4>
                         <ul class="text-sm text-gray-700 space-y-1">
-                            <li>• <strong>コード構造の最適化:</strong> クラス設計の見直しと責務の明確化</li>
-                            <li>• <strong>バージョン管理の強化:</strong> セマンティックバージョニングの厳格な運用</li>
-                            <li>• <strong>更新履歴の整理:</strong> 変更内容の明確な記録と追跡性の向上</li>
-                            <li>• <strong>保守性の向上:</strong> コードの可読性と拡張性の改善</li>
-                            <li>• <strong>ドキュメント整備:</strong> コード内コメントとバージョン情報の充実</li>
+                            <li>• <strong>レイアウト最適化:</strong> 相見積もり結果を基本情報の下、左半分に配置</li>
+                            <li>• <strong>比較項目の最適化:</strong> 購買先、単価、送料、送料込単価、URLの5項目に絞り込み</li>
+                            <li>• <strong>URL表示機能:</strong> クリック可能なリンクとして表示（新しいタブで開く）</li>
+                            <li>• <strong>UI/UX向上:</strong> より見やすく、使いやすいレイアウトに改善</li>
+                            <li>• <strong>情報の集約:</strong> 関連情報を視覚的にグループ化</li>
                         </ul>
 
                         <div class="mt-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
                             <div class="flex items-center">
-                                <span class="text-green-600 mr-2">🔄</span>
-                                <strong class="text-green-800">メジャーアップデート</strong>
-                                <span class="text-green-700 ml-2">= コード品質と保守性の大幅向上</span>
+                                <span class="text-green-600 mr-2">📊</span>
+                                <strong class="text-green-800">マイナーアップデート</strong>
+                                <span class="text-green-700 ml-2">= UI/UX改善と機能強化</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Version History -->
                     <div class="space-y-3">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <span class="font-bold text-gray-700">v3.0.0</span>
+                                <span class="text-gray-600 ml-2">- 2025年1月（コードリファクタリング版）</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">🔄 完全リファクタリング・コード品質向上</h4>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li>• コード構造の最適化とクラス設計の見直し</li>
+                                <li>• バージョン管理の強化（セマンティックバージョニング）</li>
+                                <li>• 保守性とコードの可読性の改善</li>
+                            </ul>
+                        </div>
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center mb-2">
                                 <span class="font-bold text-gray-700">v2.6.x</span>
@@ -396,14 +408,14 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.0.0
+         * Version: 3.1.0
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.0.0):
-         * - コード構造の最適化とクラス設計の見直し
-         * - バージョン管理の強化（セマンティックバージョニング）
-         * - 更新履歴の整理と追跡性の向上
-         * - 保守性とコードの可読性の改善
+         * 主要更新内容 (v3.1.0):
+         * - 相見積もり結果のレイアウト改善（左半分に配置）
+         * - 比較項目の最適化（購買先、単価、送料、送料込単価、URL）
+         * - URL表示機能の追加（クリック可能なリンク）
+         * - UI/UXの向上
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -421,7 +433,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.0.0';
+                this.version = '3.1.0';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3598,6 +3610,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.0',
+                        date: '2025年1月',
+                        type: 'minor',
+                        title: '📊 相見積もり結果表示の改善',
+                        changes: [
+                            '📐 レイアウト最適化: 相見積もり結果を基本情報の下、左半分に配置',
+                            '📋 比較項目の最適化: 購買先、単価、送料、送料込単価、URLの5項目に絞り込み',
+                            '🔗 URL表示機能: クリック可能なリンクとして表示（新しいタブで開く）',
+                            '✨ UI/UX向上: より見やすく、使いやすいレイアウトに改善',
+                            '🎯 情報の集約: 関連情報を視覚的にグループ化'
+                        ]
+                    },
                     {
                         version: '3.0.0',
                         date: '2025年1月',

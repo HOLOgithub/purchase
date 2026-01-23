@@ -1450,31 +1450,31 @@
                             ${this.generateValidationInputSection(application, basicInfo, index)}
                         </div>
 
-                        <!-- 相見積もり結果表示エリア -->
-                        <div id="quotationResultArea-${index}" class="mt-4">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
-                                    <span class="mr-2">📊</span>相見積もり結果
-                                    <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
-                                </h3>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
-                                        <thead>
-                                            <tr class="bg-blue-100">
-                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">発注数</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">合計</th>
-                                                <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
-                                                <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">備考</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="quotationTableBody">
-                                        </tbody>
-                                    </table>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                            <!-- 相見積もり結果表示エリア -->
+                            <div id="quotationResultArea-${index}">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h3 class="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                                        <span class="mr-2">📊</span>相見積もり結果
+                                        <span class="quotationItemName ml-2 text-blue-600 font-normal"></span>
+                                    </h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full bg-white border border-blue-200 rounded-md text-sm">
+                                            <thead>
+                                                <tr class="bg-blue-100">
+                                                    <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">購買先</th>
+                                                    <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">単価</th>
+                                                    <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料</th>
+                                                    <th class="px-3 py-2 text-right font-medium text-blue-800 border-b">送料込単価</th>
+                                                    <th class="px-3 py-2 text-left font-medium text-blue-800 border-b">URL</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="quotationTableBody">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
                                 </div>
-                                <div class="quotationRecommendation mt-3 text-sm text-green-700 font-medium"></div>
                             </div>
                         </div>
 
@@ -3524,14 +3524,14 @@ ${priceReason}`;
                     const row = document.createElement('tr');
                     row.className = `${rowClass} border-b hover:bg-gray-50`;
 
+                    const urlCell = q.url ? `<a href="${q.url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline text-xs">🔗 リンク</a>` : '-';
+
                     row.innerHTML = `
                         <td class="px-3 py-2 font-medium ${isLowest ? 'text-green-700' : ''}">${q.supplier}${isLowest ? ' ⭐' : ''}</td>
                         <td class="px-3 py-2 text-right">¥${q.unitPrice.toLocaleString()}</td>
-                        <td class="px-3 py-2 text-right">${q.quantity}</td>
                         <td class="px-3 py-2 text-right">¥${q.shippingFee.toLocaleString()}</td>
-                        <td class="px-3 py-2 text-right">¥${q.total.toLocaleString()}</td>
                         <td class="px-3 py-2 text-right font-medium ${isLowest ? 'text-green-700' : ''}">¥${(q.unitPriceWithShipping || q.unitPrice).toLocaleString()}</td>
-                        <td class="px-3 py-2 text-gray-600 text-xs">${q.remarks}</td>
+                        <td class="px-3 py-2">${urlCell}</td>
                     `;
 
                     tableBody.appendChild(row);

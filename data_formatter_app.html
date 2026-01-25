@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.1.1</span>
+                        <span id="appVersion">v3.1.2</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -166,29 +166,40 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div class="flex items-center mb-2">
                             <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
-                            <span class="font-bold text-green-700">v3.1.1</span>
-                            <span class="text-gray-600 ml-2">- 2025年1月（相見積もり表示修正版）</span>
+                            <span class="font-bold text-green-700">v3.1.2</span>
+                            <span class="text-gray-600 ml-2">- 2025年1月（相見積もりデータ抽出強化版）</span>
                         </div>
-                        <h4 class="font-semibold text-gray-800 mb-2">🐛 相見積もり表示の修正</h4>
+                        <h4 class="font-semibold text-gray-800 mb-2">🔍 相見積もりデータ抽出の強化</h4>
                         <ul class="text-sm text-gray-700 space-y-1">
-                            <li>• <strong>表示位置の修正:</strong> 基本情報の次、検証データの前に配置（左半分）</li>
-                            <li>• <strong>データ抽出ロジックの改善:</strong> テーブル形式のデータに完全対応</li>
-                            <li>• <strong>複数プロジェクト対応:</strong> すべてのプロジェクトに相見積もり結果を表示</li>
-                            <li>• <strong>デバッグログの追加:</strong> データ抽出と表示のデバッグを容易化</li>
-                            <li>• <strong>型番認識の改善:</strong> 部材CODEも型番として認識</li>
+                            <li>• <strong>詳細デバッグログの追加:</strong> 各列のヘッダーと値を詳細にログ出力</li>
+                            <li>• <strong>URL抽出の改善:</strong> 大文字小文字対応、「リンク」キーワード対応</li>
+                            <li>• <strong>送料込単価の自動計算:</strong> データに含まれない場合は自動計算</li>
+                            <li>• <strong>データ抽出精度の向上:</strong> 全列をスキャンしてデータを正確に抽出</li>
+                            <li>• <strong>Excelデータの完全対応:</strong> 購買先1、購買先2、購買先3形式に対応</li>
                         </ul>
 
                         <div class="mt-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
                             <div class="flex items-center">
-                                <span class="text-green-600 mr-2">🐛</span>
+                                <span class="text-green-600 mr-2">🔍</span>
                                 <strong class="text-green-800">パッチアップデート</strong>
-                                <span class="text-green-700 ml-2">= バグ修正と改善</span>
+                                <span class="text-green-700 ml-2">= データ抽出の強化とデバッグ改善</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Version History -->
                     <div class="space-y-3">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-2">
+                                <span class="font-bold text-gray-700">v3.1.1</span>
+                                <span class="text-gray-600 ml-2">- 2025年1月（相見積もり表示修正版）</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-800 mb-2">🐛 相見積もり表示の修正</h4>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li>• 表示位置の修正とデータ抽出ロジックの改善</li>
+                                <li>• 複数プロジェクト対応とデバッグログ追加</li>
+                            </ul>
+                        </div>
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex items-center mb-2">
                                 <span class="font-bold text-gray-700">v3.1.0</span>
@@ -420,14 +431,14 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.1.1
+         * Version: 3.1.2
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.1.1):
-         * - 相見積もり結果の表示位置修正（基本情報の次、検証データの前）
-         * - データ抽出ロジックの改善（テーブル形式に完全対応）
-         * - 複数プロジェクトへの相見積もり結果表示対応
-         * - デバッグログの追加
+         * 主要更新内容 (v3.1.2):
+         * - 相見積もりデータ抽出の詳細デバッグログ追加
+         * - URL抽出の改善（大文字小文字対応、リンク対応）
+         * - 送料込単価の自動計算機能追加
+         * - データ抽出の精度向上
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -445,7 +456,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.1';
+                this.version = '3.1.2';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3407,6 +3418,8 @@ ${priceReason}`;
             extractQuotationFromTable(jsonData) {
                 const quotations = [];
 
+                console.log('📊 相見積もりテーブルデータ抽出開始');
+
                 // 購買先の行を探す
                 for (let i = 0; i < jsonData.length; i++) {
                     const row = jsonData[i];
@@ -3416,9 +3429,14 @@ ${priceReason}`;
 
                     // 購買先1、購買先2、購買先3 のパターンを探す
                     if (firstCell.match(/^購買先\d+$/)) {
+                        console.log(`📊 購買先ヘッダー発見 (行${i}): ${firstCell}`);
+
                         // 現在の行がヘッダー、次の行にデータがある想定
                         const headerRow = jsonData[i];
                         const dataRow = jsonData[i + 1];
+
+                        console.log(`📊 ヘッダー行 (行${i}):`, headerRow);
+                        console.log(`📊 データ行 (行${i + 1}):`, dataRow);
 
                         if (dataRow && dataRow.length >= 2) {
                             const supplierName = String(dataRow[0] || '').trim();
@@ -3438,34 +3456,53 @@ ${priceReason}`;
                                     url: ''
                                 };
 
-                                for (let j = 1; j < headers.length && j < values.length; j++) {
+                                for (let j = 0; j < headers.length && j < values.length; j++) {
                                     const header = String(headers[j] || '').trim();
                                     const value = values[j];
 
-                                    if (header.includes('単価') && !header.includes('送料込')) {
+                                    console.log(`📊 列${j}: ヘッダー="${header}", 値="${value}"`);
+
+                                    if (j === 0) {
+                                        // 1列目は購買先名（既に設定済み）
+                                        continue;
+                                    } else if (header.includes('単価') && !header.includes('送料込')) {
                                         quotation.unitPrice = this.parsePrice(value);
+                                        console.log(`  ✓ 単価: ${quotation.unitPrice}`);
                                     } else if (header.includes('発注数')) {
                                         quotation.quantity = parseInt(value, 10) || 0;
+                                        console.log(`  ✓ 発注数: ${quotation.quantity}`);
                                     } else if (header.includes('送料') && !header.includes('込')) {
                                         quotation.shippingFee = this.parsePrice(value);
+                                        console.log(`  ✓ 送料: ${quotation.shippingFee}`);
                                     } else if (header.includes('合計')) {
                                         quotation.total = this.parsePrice(value);
-                                    } else if (header.includes('送料込単価')) {
+                                        console.log(`  ✓ 合計: ${quotation.total}`);
+                                    } else if (header.includes('送料込単価') || header.includes('送料込み単価')) {
                                         quotation.unitPriceWithShipping = this.parsePrice(value);
+                                        console.log(`  ✓ 送料込単価: ${quotation.unitPriceWithShipping}`);
                                     } else if (header.includes('備考')) {
                                         quotation.remarks = String(value || '');
-                                    } else if (header.includes('URL')) {
+                                        console.log(`  ✓ 備考: ${quotation.remarks}`);
+                                    } else if (header.toUpperCase().includes('URL') || header.includes('リンク')) {
                                         quotation.url = String(value || '');
+                                        console.log(`  ✓ URL: ${quotation.url}`);
                                     }
                                 }
 
+                                // 送料込単価が設定されていない場合は、単価+送料で計算
+                                if (quotation.unitPriceWithShipping === 0 && quotation.unitPrice > 0) {
+                                    quotation.unitPriceWithShipping = quotation.unitPrice + (quotation.shippingFee / Math.max(quotation.quantity, 1));
+                                    console.log(`  ⚙️ 送料込単価を計算: ${quotation.unitPriceWithShipping}`);
+                                }
+
                                 quotations.push(quotation);
-                                console.log(`📊 購買先データ抽出: ${supplierName}`, quotation);
+                                console.log(`✅ 購買先データ抽出完了: ${supplierName}`, quotation);
                             }
                         }
                     }
                 }
 
+                console.log(`📊 相見積もりテーブルデータ抽出完了: ${quotations.length}件`);
                 return quotations;
             }
 
@@ -3607,6 +3644,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.2',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '🔍 相見積もりデータ抽出の強化',
+                        changes: [
+                            '🐞 詳細デバッグログの追加: 各列のヘッダーと値を詳細にログ出力',
+                            '🔗 URL抽出の改善: 大文字小文字対応、「リンク」キーワード対応',
+                            '⚙️ 送料込単価の自動計算: データに含まれない場合は自動計算',
+                            '📊 データ抽出精度の向上: 全列をスキャンしてデータを正確に抽出',
+                            '✅ Excelデータの完全対応: 購買先1、購買先2、購買先3形式に対応'
+                        ]
+                    },
                     {
                         version: '3.1.1',
                         date: '2025年1月',

@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.1.4</span>
+                        <span id="appVersion">v3.1.5</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -453,14 +453,13 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.1.4
+         * Version: 3.1.5
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.1.4):
-         * - 固定行・列番号での相見積もりデータ抽出
-         * - 購買先1: 16行、購買先2: 19行、購買先3: 22行
-         * - B列: 購買先名、C列: 発注数、G列: 送料込み単価
-         * - シンプルで確実なデータ抽出ロジック
+         * 主要更新内容 (v3.1.5):
+         * - Excel全データの詳細ログ出力強化
+         * - 全行のデータ内容を確認可能に
+         * - 相見積もりデータの正確な行番号特定のため
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -478,7 +477,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.4';
+                this.version = '3.1.5';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3441,7 +3440,17 @@ ${priceReason}`;
                 const quotations = [];
 
                 console.log('📊 相見積もりテーブルデータ抽出開始');
-                console.log('📊 Excel全データ（最初の30行）:', jsonData.slice(0, 30));
+                console.log('📊 Excel総行数:', jsonData.length);
+
+                // 全データの詳細を表示
+                console.log('📊 Excel全データの詳細:');
+                jsonData.forEach((row, index) => {
+                    if (row && row.length > 0) {
+                        console.log(`  行${index + 1} (インデックス${index}):`, row);
+                    } else {
+                        console.log(`  行${index + 1} (インデックス${index}): 空の行`);
+                    }
+                });
 
                 // 固定された行番号からデータを抽出
                 // 購買先1: 16行目 (インデックス15)
@@ -3637,6 +3646,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.5',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '🔍 Excel全データの詳細ログ出力強化',
+                        changes: [
+                            '📊 全行の詳細ログ: Excelの全行データを行番号とともに出力',
+                            '🐞 デバッグ強化: 各行のデータ内容を確認可能に',
+                            '🎯 正確な行番号特定: 相見積もりデータの実際の位置を確認',
+                            '✅ データ構造の可視化: 空行と非空行を明確に区別',
+                            '🔧 トラブルシューティング: データ抽出問題の原因特定を容易に'
+                        ]
+                    },
                     {
                         version: '3.1.4',
                         date: '2025年1月',

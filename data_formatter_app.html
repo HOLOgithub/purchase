@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.1.5</span>
+                        <span id="appVersion">v3.1.6</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -453,13 +453,14 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.1.5
+         * Version: 3.1.6
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.1.5):
-         * - Excel全データの詳細ログ出力強化
-         * - 全行のデータ内容を確認可能に
-         * - 相見積もりデータの正確な行番号特定のため
+         * 主要更新内容 (v3.1.6):
+         * - 正確な行・列位置でのデータ抽出
+         * - 購買先データ: 18行、21行、24行目から抽出
+         * - 列構造: B列(購買先)、D列(発注数)、G列(送料込単価)
+         * - URL・備考の完全抽出対応
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -477,7 +478,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.5';
+                this.version = '3.1.6';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3453,10 +3454,10 @@ ${priceReason}`;
                 });
 
                 // 固定された行番号からデータを抽出
-                // 購買先1: 16行目 (インデックス15)
-                // 購買先2: 19行目 (インデックス18)
-                // 購買先3: 22行目 (インデックス21)
-                const supplierRows = [15, 18, 21]; // 行番号 - 1
+                // 購買先1: 18行目 (インデックス17)
+                // 購買先2: 21行目 (インデックス20)
+                // 購買先3: 24行目 (インデックス23)
+                const supplierRows = [17, 20, 23]; // 実際のデータ行
 
                 supplierRows.forEach((rowIndex, index) => {
                     const supplierNumber = index + 1;
@@ -3469,14 +3470,23 @@ ${priceReason}`;
                         if (row && row.length > 6) {
                             // B列（インデックス1）: 購買先名
                             const supplierName = String(row[1] || '').trim();
-                            // C列（インデックス2）: 発注数
-                            const quantity = parseInt(row[2], 10) || 0;
+                            // D列（インデックス3）: 発注数_1
+                            const quantity = parseInt(row[3], 10) || 0;
                             // G列（インデックス6）: 送料込み単価
                             const unitPriceWithShipping = this.parsePrice(row[6]);
 
+                            // H列（インデックス7）: 備考
+                            const remarks = String(row[7] || '').trim();
+                            // I列（インデックス8）: URL
+                            const url = String(row[8] || '').trim();
+                            // E列（インデックス4）: 送料
+                            const shippingFee = this.parsePrice(row[4]);
+
                             console.log(`  B列 (購買先名): "${supplierName}"`);
-                            console.log(`  C列 (発注数): ${quantity}`);
+                            console.log(`  D列 (発注数): ${quantity}`);
                             console.log(`  G列 (送料込み単価): ${unitPriceWithShipping}`);
+                            console.log(`  H列 (備考): "${remarks}"`);
+                            console.log(`  I列 (URL): "${url}"`);
 
                             // 購買先名が有効な場合のみ追加
                             if (supplierName && supplierName.length > 0 && !supplierName.includes('購買先')) {
@@ -3484,11 +3494,11 @@ ${priceReason}`;
                                     supplier: supplierName,
                                     unitPrice: unitPriceWithShipping, // 送料込み単価を単価として使用
                                     quantity: quantity,
-                                    shippingFee: 0, // 送料は送料込み単価に含まれる
+                                    shippingFee: shippingFee,
                                     total: unitPriceWithShipping * quantity,
                                     unitPriceWithShipping: unitPriceWithShipping,
-                                    remarks: '',
-                                    url: ''
+                                    remarks: remarks,
+                                    url: url
                                 };
 
                                 quotations.push(quotation);
@@ -3646,6 +3656,20 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.6',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '✅ 正確な行・列位置でのデータ抽出完成',
+                        changes: [
+                            '🎯 正確な行番号: 購買先1は18行、購買先2は21行、購買先3は24行',
+                            '📊 正確な列番号: B列(購買先名)、D列(発注数)、G列(送料込単価)',
+                            '🔗 URL完全抽出: I列からURLを抽出',
+                            '📝 備考完全抽出: H列から備考を抽出',
+                            '💰 送料抽出: E列から送料を抽出',
+                            '✅ 実データに基づく確実な抽出ロジック'
+                        ]
+                    },
                     {
                         version: '3.1.5',
                         date: '2025年1月',

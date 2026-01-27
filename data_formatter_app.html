@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.1.6</span>
+                        <span id="appVersion">v3.1.7</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -453,14 +453,14 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.1.6
+         * Version: 3.1.7
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.1.6):
-         * - 正確な行・列位置でのデータ抽出
-         * - 購買先データ: 18行、21行、24行目から抽出
-         * - 列構造: B列(購買先)、D列(発注数)、G列(送料込単価)
-         * - URL・備考の完全抽出対応
+         * 主要更新内容 (v3.1.7):
+         * - シンプルなデータ抽出ロジック
+         * - 購買先データ: 16行、19行、22行から抽出
+         * - 列構造: B列(購買先名)、C列(発注数)、G列(送料込単価)
+         * - デバッグログ削除で軽量化
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -478,7 +478,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.6';
+                this.version = '3.1.7';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3440,81 +3440,44 @@ ${priceReason}`;
             extractQuotationFromTable(jsonData) {
                 const quotations = [];
 
-                console.log('📊 相見積もりテーブルデータ抽出開始');
-                console.log('📊 Excel総行数:', jsonData.length);
-
-                // 全データの詳細を表示
-                console.log('📊 Excel全データの詳細:');
-                jsonData.forEach((row, index) => {
-                    if (row && row.length > 0) {
-                        console.log(`  行${index + 1} (インデックス${index}):`, row);
-                    } else {
-                        console.log(`  行${index + 1} (インデックス${index}): 空の行`);
-                    }
-                });
-
-                // 固定された行番号からデータを抽出
-                // 購買先1: 18行目 (インデックス17)
-                // 購買先2: 21行目 (インデックス20)
-                // 購買先3: 24行目 (インデックス23)
-                const supplierRows = [17, 20, 23]; // 実際のデータ行
+                // 購買先1: 16行 (インデックス16)
+                // 購買先2: 19行 (インデックス19)
+                // 購買先3: 22行 (インデックス22)
+                const supplierRows = [16, 19, 22];
 
                 supplierRows.forEach((rowIndex, index) => {
                     const supplierNumber = index + 1;
-                    console.log(`📊 購買先${supplierNumber}のデータを抽出中 (行${rowIndex + 1})`);
 
                     if (rowIndex < jsonData.length) {
                         const row = jsonData[rowIndex];
-                        console.log(`📊 行${rowIndex + 1}のデータ:`, row);
 
                         if (row && row.length > 6) {
                             // B列（インデックス1）: 購買先名
                             const supplierName = String(row[1] || '').trim();
-                            // D列（インデックス3）: 発注数_1
-                            const quantity = parseInt(row[3], 10) || 0;
+                            // C列（インデックス2）: 発注数
+                            const quantity = parseInt(row[2], 10) || 0;
                             // G列（インデックス6）: 送料込み単価
                             const unitPriceWithShipping = this.parsePrice(row[6]);
-
-                            // H列（インデックス7）: 備考
-                            const remarks = String(row[7] || '').trim();
-                            // I列（インデックス8）: URL
-                            const url = String(row[8] || '').trim();
-                            // E列（インデックス4）: 送料
-                            const shippingFee = this.parsePrice(row[4]);
-
-                            console.log(`  B列 (購買先名): "${supplierName}"`);
-                            console.log(`  D列 (発注数): ${quantity}`);
-                            console.log(`  G列 (送料込み単価): ${unitPriceWithShipping}`);
-                            console.log(`  H列 (備考): "${remarks}"`);
-                            console.log(`  I列 (URL): "${url}"`);
 
                             // 購買先名が有効な場合のみ追加
                             if (supplierName && supplierName.length > 0 && !supplierName.includes('購買先')) {
                                 const quotation = {
                                     supplier: supplierName,
-                                    unitPrice: unitPriceWithShipping, // 送料込み単価を単価として使用
+                                    unitPrice: unitPriceWithShipping,
                                     quantity: quantity,
-                                    shippingFee: shippingFee,
+                                    shippingFee: 0,
                                     total: unitPriceWithShipping * quantity,
                                     unitPriceWithShipping: unitPriceWithShipping,
-                                    remarks: remarks,
-                                    url: url
+                                    remarks: '',
+                                    url: ''
                                 };
 
                                 quotations.push(quotation);
-                                console.log(`✅ 購買先${supplierNumber}データ抽出完了: ${supplierName}`, quotation);
-                            } else {
-                                console.log(`⚠️ 購買先${supplierNumber}の名前が無効: "${supplierName}"`);
                             }
-                        } else {
-                            console.log(`⚠️ 行${rowIndex + 1}のデータが不足しています (列数: ${row ? row.length : 0})`);
                         }
-                    } else {
-                        console.log(`⚠️ 行${rowIndex + 1}がExcelデータに存在しません（全${jsonData.length}行）`);
                     }
                 });
 
-                console.log(`📊 相見積もりテーブルデータ抽出完了: ${quotations.length}件`);
                 return quotations;
             }
 
@@ -3656,6 +3619,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.7',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '🎯 シンプルなデータ抽出ロジック',
+                        changes: [
+                            '📍 固定行番号: 購買先1は16行、購買先2は19行、購買先3は22行',
+                            '📊 固定列番号: B列(購買先名)、C列(発注数)、G列(送料込単価)',
+                            '🧹 デバッグログ削除: 不要なログを削除して軽量化',
+                            '⚡ シンプルなロジック: 最小限のコードで確実に抽出',
+                            '✅ ユーザー指定通りの実装'
+                        ]
+                    },
                     {
                         version: '3.1.6',
                         date: '2025年1月',

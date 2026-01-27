@@ -51,7 +51,7 @@
                 <div class="text-right">
                     <div class="inline-flex items-center bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
                         <span class="mr-1">✨</span>
-                        <span id="appVersion">v3.1.7</span>
+                        <span id="appVersion">v3.1.8</span>
                     </div>
                     <button id="versionInfoBtn" class="mt-1 text-xs text-green-600 hover:text-green-800 underline">
                         更新履歴を表示
@@ -453,14 +453,14 @@
          * =============================================================================
          * SPAS - スマート調達分析システム (Smart Procurement Analysis System)
          * =============================================================================
-         * Version: 3.1.7
+         * Version: 3.1.8
          * Release Date: 2025年1月
          *
-         * 主要更新内容 (v3.1.7):
-         * - シンプルなデータ抽出ロジック
-         * - 購買先データ: 16行、19行、22行から抽出
-         * - 列構造: B列(購買先名)、C列(発注数)、G列(送料込単価)
-         * - デバッグログ削除で軽量化
+         * 主要更新内容 (v3.1.8):
+         * - 相見積もりデータ表示修正
+         * - ヘッダー行の次の行からデータを抽出
+         * - 正確な列マッピング: C列(単価)、D列(発注数)
+         * - データがテーブルに正しく表示されるよう修正
          *
          * アーキテクチャ:
          * - DataFormatterApp: メインアプリケーションクラス
@@ -478,7 +478,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.7';
+                this.version = '3.1.8';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3440,30 +3440,34 @@ ${priceReason}`;
             extractQuotationFromTable(jsonData) {
                 const quotations = [];
 
-                // 購買先1: 16行 (インデックス16)
-                // 購買先2: 19行 (インデックス19)
-                // 購買先3: 22行 (インデックス22)
-                const supplierRows = [16, 19, 22];
+                // 購買先1: 16行 (ヘッダー行のため+1してデータ行を取得)
+                // 購買先2: 19行 (ヘッダー行のため+1してデータ行を取得)
+                // 購買先3: 22行 (ヘッダー行のため+1してデータ行を取得)
+                const supplierHeaderRows = [16, 19, 22];
 
-                supplierRows.forEach((rowIndex, index) => {
+                supplierHeaderRows.forEach((headerRowIndex, index) => {
                     const supplierNumber = index + 1;
+                    // ヘッダー行の次の行がデータ行
+                    const dataRowIndex = headerRowIndex + 1;
 
-                    if (rowIndex < jsonData.length) {
-                        const row = jsonData[rowIndex];
+                    if (dataRowIndex < jsonData.length) {
+                        const row = jsonData[dataRowIndex];
 
                         if (row && row.length > 6) {
                             // B列（インデックス1）: 購買先名
                             const supplierName = String(row[1] || '').trim();
-                            // C列（インデックス2）: 発注数
-                            const quantity = parseInt(row[2], 10) || 0;
+                            // C列（インデックス2）: 単価
+                            const unitPrice = this.parsePrice(row[2]);
+                            // D列（インデックス3）: 発注数
+                            const quantity = parseInt(row[3], 10) || 0;
                             // G列（インデックス6）: 送料込み単価
                             const unitPriceWithShipping = this.parsePrice(row[6]);
 
                             // 購買先名が有効な場合のみ追加
-                            if (supplierName && supplierName.length > 0 && !supplierName.includes('購買先')) {
+                            if (supplierName && supplierName.length > 0) {
                                 const quotation = {
                                     supplier: supplierName,
-                                    unitPrice: unitPriceWithShipping,
+                                    unitPrice: unitPrice,
                                     quantity: quantity,
                                     shippingFee: 0,
                                     total: unitPriceWithShipping * quantity,
@@ -3619,6 +3623,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.8',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '✅ 相見積もりデータ表示修正',
+                        changes: [
+                            '🔧 ヘッダー行の次の行からデータを抽出',
+                            '📊 正確な列マッピング: C列(単価)、D列(発注数)、G列(送料込単価)',
+                            '✅ データがテーブルに正しく表示されるよう修正',
+                            '🎯 購買先名の検証ロジック改善',
+                            '📋 3社分の相見積もりデータを確実に表示'
+                        ]
+                    },
                     {
                         version: '3.1.7',
                         date: '2025年1月',

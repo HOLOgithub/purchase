@@ -166,23 +166,22 @@
                     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div class="flex items-center mb-2">
                             <span class="bg-green-600 text-white px-2 py-1 rounded text-sm font-medium mr-2">LATEST</span>
-                            <span class="font-bold text-green-700">v3.1.8</span>
-                            <span class="text-gray-600 ml-2">- 2025年1月（相見積もり表示修正版）</span>
+                            <span class="font-bold text-green-700">v3.1.11</span>
+                            <span class="text-gray-600 ml-2">- 2025年1月（前回注文情報表示強化版）</span>
                         </div>
-                        <h4 class="font-semibold text-gray-800 mb-2">🎯 相見積もりデータ表示修正・コード品質改善</h4>
+                        <h4 class="font-semibold text-gray-800 mb-2">📋 相見積もり結果に前回注文情報を追加</h4>
                         <ul class="text-sm text-gray-700 space-y-1">
-                            <li>• <strong>固定行番号:</strong> 購買先1は16行、購買先2は19行、購買先3は22行</li>
-                            <li>• <strong>固定列番号:</strong> B列(購買先名)、C列(単価)、D列(発注数)、G列(送料込み単価)</li>
-                            <li>• <strong>相見積もり表示修正:</strong> プロジェクト参照エラーを修正</li>
-                            <li>• <strong>基本情報更新修正:</strong> 表示更新メソッドを追加</li>
-                            <li>• <strong>コード品質改善:</strong> nullガード処理の追加</li>
+                            <li>• <strong>前回注文情報表示:</strong> 前回単価と前回発注数量を相見積もり結果に表示</li>
+                            <li>• <strong>操作順序対応:</strong> Excel→データ処理の順序でも相見積もり表示可能</li>
+                            <li>• <strong>一時保存機能:</strong> データ処理前のExcel読込に対応</li>
+                            <li>• <strong>コード品質改善:</strong> 参照エラー修正、nullガード追加</li>
                         </ul>
 
                         <div class="mt-3 p-2 bg-green-100 border border-green-300 rounded text-sm">
                             <div class="flex items-center">
                                 <span class="text-green-600 mr-2">🎯</span>
                                 <strong class="text-green-800">パッチアップデート</strong>
-                                <span class="text-green-700 ml-2">= バグ修正・安定性向上</span>
+                                <span class="text-green-700 ml-2">= 機能強化・安定性向上</span>
                             </div>
                         </div>
                     </div>
@@ -478,7 +477,7 @@
         // アプリケーションメインクラス
         class DataFormatterApp {
             constructor() {
-                this.version = '3.1.8';
+                this.version = '3.1.11';
                 this.projects = [];
                 this.applicationDataMap = new Map();
                 this.elements = this.initializeElements();
@@ -3466,8 +3465,9 @@ ${priceReason}`;
                 const itemName = dataMap['物品名'] || dataMap['仕様'] || '';
                 const modelNumber = dataMap['型番'] || dataMap['部材CODE'] || '';
                 const previousUnitPrice = dataMap['前回の注文単価'] || dataMap['前回注文単価'] || '';
+                const previousOrderQuantity = dataMap['前回の注文数'] || dataMap['前回注文数'] || '';
 
-                console.log('📊 相見積もり基本情報:', { itemName, modelNumber, previousUnitPrice });
+                console.log('📊 相見積もり基本情報:', { itemName, modelNumber, previousUnitPrice, previousOrderQuantity });
 
                 // テーブル形式で購買先データを探す（優先）
                 const quotations = this.extractQuotationFromTable(jsonData);
@@ -3482,6 +3482,7 @@ ${priceReason}`;
                     itemName: itemName,
                     modelNumber: modelNumber,
                     previousUnitPrice: previousUnitPrice,
+                    previousOrderQuantity: previousOrderQuantity,
                     quotations: quotations
                 };
             }
@@ -3617,17 +3618,29 @@ ${priceReason}`;
                     if (minSupplier && minPrice !== Infinity) {
                         recommendationEl.innerHTML = `💡 推奨: <span class="text-green-800 font-bold">${minSupplier}</span>（送料込単価 ¥${minPrice.toLocaleString()} で最安）`;
 
-                        // 前回注文単価との比較
-                        if (quotationData.previousUnitPrice) {
-                            const prevPrice = this.parsePrice(quotationData.previousUnitPrice);
+                        // 前回注文情報を表示
+                        const prevPrice = quotationData.previousUnitPrice ? this.parsePrice(quotationData.previousUnitPrice) : 0;
+                        const prevQuantity = quotationData.previousOrderQuantity ? parseInt(quotationData.previousOrderQuantity, 10) : 0;
+
+                        if (prevPrice > 0 || prevQuantity > 0) {
+                            let prevInfoParts = [];
                             if (prevPrice > 0) {
-                                const diff = minPrice - prevPrice;
-                                const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
-                                if (diff < 0) {
-                                    recommendationEl.innerHTML += `<br>📉 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
-                                } else if (diff > 0) {
-                                    recommendationEl.innerHTML += `<br>📈 前回単価(¥${prevPrice.toLocaleString()})より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
-                                }
+                                prevInfoParts.push(`単価 ¥${prevPrice.toLocaleString()}`);
+                            }
+                            if (prevQuantity > 0) {
+                                prevInfoParts.push(`数量 ${prevQuantity.toLocaleString()}個`);
+                            }
+                            recommendationEl.innerHTML += `<br>📋 前回注文: ${prevInfoParts.join('、')}`;
+                        }
+
+                        // 前回注文単価との比較
+                        if (prevPrice > 0) {
+                            const diff = minPrice - prevPrice;
+                            const diffPercent = ((diff / prevPrice) * 100).toFixed(1);
+                            if (diff < 0) {
+                                recommendationEl.innerHTML += `<br>📉 前回単価より <span class="text-green-600">¥${Math.abs(diff).toLocaleString()} (${Math.abs(diffPercent)}%) 安い</span>`;
+                            } else if (diff > 0) {
+                                recommendationEl.innerHTML += `<br>📈 前回単価より <span class="text-orange-600">¥${diff.toLocaleString()} (${diffPercent}%) 高い</span>`;
                             }
                         }
                     } else {
@@ -3673,6 +3686,19 @@ ${priceReason}`;
             
             getVersionHistory() {
                 return [
+                    {
+                        version: '3.1.11',
+                        date: '2025年1月',
+                        type: 'patch',
+                        title: '📋 前回注文情報表示強化',
+                        changes: [
+                            '📋 相見積もり結果に前回単価・前回発注数量を表示',
+                            '🔄 Excel→データ処理の操作順序に対応（一時保存機能）',
+                            '🔧 ExcelImporter参照エラーを修正',
+                            '✅ generateBasicInfoDisplayContentメソッド追加',
+                            '🛡️ nullガード処理の追加で安定性向上'
+                        ]
+                    },
                     {
                         version: '3.1.8',
                         date: '2025年1月',
